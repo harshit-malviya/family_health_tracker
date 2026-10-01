@@ -81,7 +81,7 @@ The application has a clean visual design, strong domain foundations adhering to
 | **CRIT-08** | **P2** | UI / Layout | `lib/ui/screens/dashboard_screen.dart` | Unbounded `Text` inside unconstrained header `Row` | Right pixel overflow (yellow/black tape) on small screens or long member names | **RESOLVED**: Wrapped header title `Text` in `Flexible` with `TextOverflow.ellipsis` and `maxLines: 1` |
 | **CRIT-09** | **P2** | State / Settings | `lib/providers/health_providers.dart` | `glucoseUnitProvider` is in-memory only and does not persist to disk | Setting `mmol/L` resets back to `mg/dL` on every app restart | **RESOLVED**: Backed `GlucoseUnitNotifier` by `SharedPreferences` with synchronous startup read & sanitization |
 | **CRIT-10** | **P2** | Lifecycle | `lib/ui/screens/doctor_report_screen.dart` | Missing `catch` block on direct print; `setState` called after unmount | Flutter runtime exceptions if user navigates back while PDF renders | **RESOLVED**: Added localized error handling (`errorPrintPdf`, `errorGeneratePdf`) with `SnackBar`s, guarded `setState` with `if (mounted)`, and localized the direct print button |
-| **CRIT-11** | **P2** | Build / Release | `android/app/build.gradle.kts` | Silent fallback to debug keystore when `key.properties` is missing | Accidental debug signing of release builds, failing Google Play upload | Throw a clear build error in Gradle if release signing configuration is absent |
+| **CRIT-11** | **P2** | Build / Release | `android/app/build.gradle.kts` | Silent fallback to debug keystore when `key.properties` is missing | Accidental debug signing of release builds, failing Google Play upload | **RESOLVED**: Removed silent debug fallback; added pre-execution task graph validation enforcing required credentials and keystore file existence with actionable GradleException |
 | **CRIT-12** | **P2** | Privacy / PHI | `lib/services/backup_restore_service.dart` | Sensitive medical records written in plaintext JSON; no `allowBackup` rules in manifest | Patient medical data exposed in cleartext and potentially synced to third-party clouds | Add `dataExtractionRules`, set `allowBackup="false"` or encrypt backups with user password |
 
 ---
@@ -308,12 +308,14 @@ final dia = int.tryParse(_diaController.text) ?? 80;  // Silently invents 80
 
 ### [CRIT-11] Silent Fallback to Debug Keystore in Release Gradle Builds
 **Severity:** P2 — HIGH  
+**Status:** **RESOLVED**  
 **Category:** Build & Release Configuration  
-**File:** [build.gradle.kts](file:///g:/Code/health_tracker/android/app/build.gradle.kts#L44-L57)  
-**Location:** Lines 44–57 in `android/app/build.gradle.kts`  
+**File:** [build.gradle.kts](file:///g:/Code/health_tracker/android/app/build.gradle.kts#L44-L115)  
+**Location:** `android/app/build.gradle.kts`  
 **Problem:** The `buildTypes.release` block checks `if (keystorePropertiesFile.exists())`. If `key.properties` is missing, it falls back to `signingConfigs.getByName("debug")`.  
 **Why it matters:** CI pipelines or developers running `flutter build appbundle --release` without configuring `key.properties` will silently produce a release bundle signed with the Android debug certificate. Google Play will reject this upload, or worse, if published via an internal track, users cannot upgrade without signature collisions.  
 **Recommended solution:** If `key.properties` is absent during a release build, fail the build explicitly with a helpful error message instructing the developer to configure signing.  
+**Resolution:** Removed debug keystore fallback from `buildTypes.release`. Added strict pre-execution validation via `gradle.taskGraph.whenReady` checking that `key.properties` exists, required properties (`keyAlias`, `keyPassword`, `storeFile`, `storePassword`) are set and not template placeholders, and the keystore file exists on disk. If unconfigured, Gradle halts immediately with a clear, actionable error pointing to `android/key.properties.example`.  
 **Risk of fixing:** Low.
 
 ---
@@ -422,7 +424,7 @@ The application uses a 3-tier architecture:
 ## 11. Production Configuration Checklist
 
 - [ ] **Release build:** Verified builds without errors, but produces unsigned/debug APK if keys are missing.
-- [ ] **Signing:** Example `key.properties.example` exists; release signing config falls back silently to debug.
+- [x] **Signing:** Example `key.properties.example` exists; release builds strictly validate keystore properties and fail fast if missing (CRIT-11 resolved).
 - [ ] **Production environment:** Fully offline/local. No API backend required.
 - [ ] **Secrets:** No API keys or secrets detected in repository.
 - [ ] **Logging:** Clean; no stray `print()` or verbose debug output in production code.
@@ -450,7 +452,7 @@ The application uses a 3-tier architecture:
 2. **Fix Dashboard Header Overflow (`[CRIT-08]`):** Wrap header text in `Flexible` with ellipsis.
 3. **Persist Glucose Unit Preference (`[CRIT-09]`):** Save `'mg/dL'` vs `'mmol/L'` to `SharedPreferences`.
 4. **Guard Post-Async SetState (`[CRIT-10]`):** Add `if (mounted)` checks in `DoctorReportScreen`.
-5. **Fail Release Build on Missing Keystore (`[CRIT-11]`):** Remove silent debug fallback in Gradle.
+5. **Fail Release Build on Missing Keystore (`[CRIT-11]`):** [RESOLVED] Remove silent debug fallback in Gradle and validate signing credentials.
 6. **Restrict Cloud Auto Backup (`[CRIT-12]`):** Set `allowBackup="false"` in `AndroidManifest.xml`.
 
 ### Future Improvements (P3 & P4 Technical Debt)
@@ -476,7 +478,7 @@ The application uses a 3-tier architecture:
 - **CRIT-08:** Unconstrained dashboard greeting text overflow on narrow devices.
 - **CRIT-09:** Non-persistent glucose unit preference.
 - **CRIT-10:** Unhandled async error and unmounted `setState` in doctor report screen.
-- **CRIT-11:** Silent release build fallback to debug keystore.
+- **CRIT-11:** [RESOLVED] Silent release build fallback to debug keystore.
 
 ### Can Be Deferred
 - **CRIT-12:** Advanced backup encryption (can initially inform user via UI prompt).
