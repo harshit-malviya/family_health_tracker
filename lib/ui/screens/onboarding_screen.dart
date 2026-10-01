@@ -28,8 +28,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now();
-    _selectedDob = DateTime(now.year - 30, 1, 1);
+    _selectedDob = DateTime(2000, 1, 1);
   }
 
   @override
@@ -50,7 +49,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   Future<void> _pickDateOfBirth() async {
     final now = DateTime.now();
-    final initialDate = _selectedDob ?? DateTime(now.year - 30, 1, 1);
+    final initialDate = _selectedDob ?? DateTime(2000, 1, 1);
 
     final picked = await showDatePicker(
       context: context,
