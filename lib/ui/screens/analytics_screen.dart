@@ -40,7 +40,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
       appBar: AppBar(
         title: const Text('Trends & Analytics'),
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(110),
+          preferredSize: const Size.fromHeight(124),
           child: Column(
             children: [
               const FamilyMemberHeader(),
