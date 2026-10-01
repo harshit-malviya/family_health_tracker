@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
 import '../../providers/health_providers.dart';
+import '../../services/backup_restore_service.dart';
 import '../widgets/member_form_dialog.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -55,27 +55,17 @@ class SettingsScreen extends ConsumerWidget {
                 ListTile(
                   leading: const Icon(Icons.cloud_upload_outlined, color: Colors.blue),
                   title: const Text('Export Health Records', style: TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: const Text('Save encrypted JSON backup file or send to Google Drive/WhatsApp'),
+                  subtitle: const Text('Save JSON backup file or share to Google Drive / WhatsApp'),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () async {
-                    try {
-                      final jsonString = await repo.exportBackupJson();
-                      await SharePlus.instance.share(ShareParams(text: jsonString));
-                    } catch (e) {
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Export error: $e')),
-                      );
-                    }
-                  },
+                  onTap: () => BackupRestoreService.exportBackup(context, ref),
                 ),
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.cloud_download_outlined, color: Colors.green),
                   title: const Text('Restore from Backup', style: TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: const Text('Import previously exported JSON backup file'),
+                  subtitle: const Text('Import backup by selecting a .json file'),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () => _showImportDialog(context, ref),
+                  onTap: () => BackupRestoreService.restoreBackupFromFile(context, ref),
                 ),
               ],
             ),
@@ -101,7 +91,7 @@ class SettingsScreen extends ConsumerWidget {
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: members.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      separatorBuilder: (_, _) => const Divider(height: 1),
                       itemBuilder: (context, index) {
                         final m = members[index];
                         final dobSubtitle = m.dateOfBirth != null
@@ -219,62 +209,6 @@ class SettingsScreen extends ConsumerWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: child,
-    );
-  }
-
-  void _showImportDialog(BuildContext context, WidgetRef ref) {
-    final textController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('Restore Data'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Paste your exported JSON backup text below:',
-              style: TextStyle(fontSize: 13, color: AppColors.textMuted),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: textController,
-              maxLines: 5,
-              decoration: const InputDecoration(hintText: '{"version": 1, ...}'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () async {
-              final raw = textController.text.trim();
-              if (raw.isEmpty) return;
-              final repo = ref.read(healthRepositoryProvider);
-              final success = await repo.importBackupJson(raw);
-              if (!ctx.mounted) return;
-              Navigator.pop(ctx);
-
-              if (!context.mounted) return;
-              if (success) {
-                ref.read(familyMembersProvider.notifier).loadMembers();
-                ref.read(bpReadingsProvider.notifier).loadReadings();
-                ref.read(glucoseReadingsProvider.notifier).loadReadings();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Backup restored successfully!')),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Failed to restore backup: Invalid data format')),
-                );
-              }
-            },
-            child: const Text('Restore'),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:health_tracker/core/constants/clinical_standards.dart';
 import 'package:health_tracker/models/family_member.dart';
@@ -181,6 +182,67 @@ void main() {
       );
 
       expect(updatedGlucose.category, GlucoseCategory.elevated); // fasting >130 is elevated
+    });
+  });
+
+  group('Backup & Restore Payload Structure', () {
+    test('Validates Health Tracker Backup JSON schema', () {
+      final validJson = '''
+      {
+        "version": 1,
+        "exportedAt": "2026-10-01T12:00:00.000Z",
+        "family_members": [
+          {
+            "id": "mem_1",
+            "name": "Papa",
+            "relation": "Father",
+            "dateOfBirth": "1965-05-15",
+            "colorValue": 4282145782,
+            "avatarEmoji": "👨"
+          }
+        ],
+        "bp_readings": [
+          {
+            "id": "bp_1",
+            "memberId": "mem_1",
+            "systolic": 120,
+            "diastolic": 80,
+            "pulse": 72,
+            "notes": "Morning check",
+            "timestamp": "2026-10-01T08:00:00.000Z"
+          }
+        ],
+        "glucose_readings": [
+          {
+            "id": "glu_1",
+            "memberId": "mem_1",
+            "valueMgDl": 105.0,
+            "mealContext": "fasting",
+            "notes": "Before breakfast",
+            "timestamp": "2026-10-01T08:30:00.000Z"
+          }
+        ]
+      }
+      ''';
+
+      final Map<String, dynamic> data = jsonDecode(validJson);
+      expect(data['version'], 1);
+      expect(data['family_members'], hasLength(1));
+      expect(data['bp_readings'], hasLength(1));
+      expect(data['glucose_readings'], hasLength(1));
+      expect(DateTime.parse(data['exportedAt']), isA<DateTime>());
+
+      final member = FamilyMember.fromMap(data['family_members'][0]);
+      expect(member.name, 'Papa');
+      expect(member.relation, 'Father');
+
+      final bp = BpReading.fromMap(data['bp_readings'][0]);
+      expect(bp.systolic, 120);
+      expect(bp.diastolic, 80);
+
+      final glu = GlucoseReading.fromMap(data['glucose_readings'][0]);
+      expect(glu.valueMgDl, 105.0);
+      expect(glu.mealContext, MealContext.fasting);
     });
   });
 }

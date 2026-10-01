@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import '../../core/constants/app_colors.dart';
 import '../../models/family_member.dart';
 import '../../providers/health_providers.dart';
+import '../../services/backup_restore_service.dart';
 import '../widgets/member_form_dialog.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -374,6 +375,57 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           ),
                         ),
                       ),
+                      const SizedBox(height: 20),
+
+                      // Restore from Backup Option for Returning Users
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.03),
+                              blurRadius: 10,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            const Text(
+                              'Already have saved records?',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: AppColors.textMuted,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            OutlinedButton.icon(
+                              onPressed: () => BackupRestoreService.restoreBackupFromFile(
+                                context,
+                                ref,
+                                onSuccess: () {
+                                  final list = ref.read(familyMembersProvider).value ?? [];
+                                  if (list.isNotEmpty) {
+                                    ref.read(selectedMemberIdProvider.notifier).select(list.first.id);
+                                  }
+                                },
+                              ),
+                              icon: const Icon(Icons.file_upload_outlined, color: AppColors.primary),
+                              label: const Text('Restore from Backup File (.json)'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.primary,
+                                side: const BorderSide(color: AppColors.primary, width: 1.2),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ] else ...[
                       // Successfully created member(s) section
                       Container(
@@ -418,7 +470,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
                               itemCount: members.length,
-                              separatorBuilder: (_, __) => const Divider(height: 1),
+                              separatorBuilder: (_, _) => const Divider(height: 1),
                               itemBuilder: (context, index) {
                                 final m = members[index];
                                 final dobSubtitle = m.dateOfBirth != null
@@ -455,6 +507,23 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                                 padding: const EdgeInsets.symmetric(vertical: 14),
                               ),
+                            ),
+                            const SizedBox(height: 8),
+
+                            // Restore backup option
+                            TextButton.icon(
+                              onPressed: () => BackupRestoreService.restoreBackupFromFile(
+                                context,
+                                ref,
+                                onSuccess: () {
+                                  final list = ref.read(familyMembersProvider).value ?? [];
+                                  if (list.isNotEmpty) {
+                                    ref.read(selectedMemberIdProvider.notifier).select(list.first.id);
+                                  }
+                                },
+                              ),
+                              icon: const Icon(Icons.file_upload_outlined, size: 18),
+                              label: const Text('Restore more records from backup file'),
                             ),
                           ],
                         ),
