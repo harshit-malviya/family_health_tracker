@@ -53,12 +53,16 @@ class DashboardScreen extends ConsumerWidget {
                         children: [
                           Row(
                             children: [
-                              Text(
-                                member != null ? '${member.avatarEmoji} ${member.name}' : l10n.familyHealth,
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.textDark,
+                              Flexible(
+                                child: Text(
+                                  member != null ? '${member.avatarEmoji} ${member.name}' : l10n.familyHealth,
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.textDark,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
                                 ),
                               ),
                               if (member != null) ...[
