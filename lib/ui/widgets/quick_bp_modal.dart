@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import '../../models/bp_reading.dart';
 import '../../core/constants/clinical_standards.dart';
@@ -7,29 +8,44 @@ import '../../core/constants/app_colors.dart';
 import '../../providers/health_providers.dart';
 
 class QuickBpModal extends ConsumerStatefulWidget {
-  const QuickBpModal({super.key});
+  final BpReading? initialReading;
+
+  const QuickBpModal({super.key, this.initialReading});
 
   @override
   ConsumerState<QuickBpModal> createState() => _QuickBpModalState();
 }
 
 class _QuickBpModalState extends ConsumerState<QuickBpModal> {
-  final _sysController = TextEditingController(text: '120');
-  final _diaController = TextEditingController(text: '80');
-  final _pulseController = TextEditingController(text: '72');
-  final _notesController = TextEditingController();
+  late final TextEditingController _sysController;
+  late final TextEditingController _diaController;
+  late final TextEditingController _pulseController;
+  late final TextEditingController _notesController;
 
-  String _selectedArm = 'Left';
-  String _selectedPosture = 'Sitting';
-  bool _hasArrhythmia = false;
+  late String _selectedArm;
+  late String _selectedPosture;
+  late bool _hasArrhythmia;
+  late DateTime _selectedDateTime;
 
   BpCategory _currentCategory = BpCategory.normal;
 
   @override
   void initState() {
     super.initState();
+    final initial = widget.initialReading;
+    _sysController = TextEditingController(text: initial?.systolic.toString() ?? '120');
+    _diaController = TextEditingController(text: initial?.diastolic.toString() ?? '80');
+    _pulseController = TextEditingController(text: initial?.pulse.toString() ?? '72');
+    _notesController = TextEditingController(text: initial?.notes ?? '');
+
+    _selectedArm = initial?.arm ?? 'Left';
+    _selectedPosture = initial?.posture ?? 'Sitting';
+    _hasArrhythmia = initial?.hasArrhythmia ?? false;
+    _selectedDateTime = initial?.timestamp ?? DateTime.now();
+
     _sysController.addListener(_updateCategory);
     _diaController.addListener(_updateCategory);
+    _updateCategory();
   }
 
   void _updateCategory() {
@@ -49,10 +65,52 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
     super.dispose();
   }
 
+  bool _isToday(DateTime dt) {
+    final now = DateTime.now();
+    return dt.year == now.year && dt.month == now.month && dt.day == now.day;
+  }
+
+  bool _isYesterday(DateTime dt) {
+    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+    return dt.year == yesterday.year && dt.month == yesterday.month && dt.day == yesterday.day;
+  }
+
+  Future<void> _pickCustomDateTime() async {
+    final now = DateTime.now();
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: _selectedDateTime.isAfter(now) ? now : _selectedDateTime,
+      firstDate: now.subtract(const Duration(days: 365 * 5)), // Up to 5 years ago
+      lastDate: now,
+    );
+
+    if (pickedDate == null || !mounted) return;
+
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_selectedDateTime),
+    );
+
+    if (pickedTime == null || !mounted) return;
+
+    setState(() {
+      _selectedDateTime = DateTime(
+        pickedDate.year,
+        pickedDate.month,
+        pickedDate.day,
+        pickedTime.hour,
+        pickedTime.minute,
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final member = ref.watch(activeMemberProvider);
     final theme = Theme.of(context);
+    final isEditing = widget.initialReading != null;
+
+    final formattedDateStr = DateFormat('EEE, MMM d, yyyy • h:mm a').format(_selectedDateTime);
 
     return Container(
       padding: EdgeInsets.only(
@@ -86,7 +144,7 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Log Blood Pressure',
+                      isEditing ? 'Edit Blood Pressure' : 'Log Blood Pressure',
                       style: theme.textTheme.titleLarge?.copyWith(fontSize: 20),
                     ),
                     Text(
@@ -102,16 +160,98 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
+
+            // Date & Time Selection Box
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.grey.withValues(alpha: 0.18)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.primary),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Date & Time of Reading',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                      const Spacer(),
+                      InkWell(
+                        onTap: _pickCustomDateTime,
+                        child: Text(
+                          formattedDateStr,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      ChoiceChip(
+                        label: const Text('Now / Today'),
+                        selected: _isToday(_selectedDateTime),
+                        selectedColor: AppColors.primaryLight,
+                        onSelected: (val) {
+                          if (val) {
+                            setState(() => _selectedDateTime = DateTime.now());
+                          }
+                        },
+                      ),
+                      ChoiceChip(
+                        label: const Text('Yesterday'),
+                        selected: _isYesterday(_selectedDateTime),
+                        selectedColor: AppColors.primaryLight,
+                        onSelected: (val) {
+                          if (val) {
+                            final now = DateTime.now();
+                            setState(() {
+                              _selectedDateTime = DateTime(
+                                now.year,
+                                now.month,
+                                now.day - 1,
+                                _selectedDateTime.hour,
+                                _selectedDateTime.minute,
+                              );
+                            });
+                          }
+                        },
+                      ),
+                      ActionChip(
+                        avatar: const Icon(Icons.edit_calendar, size: 16, color: AppColors.primary),
+                        label: const Text('Pick Date & Time'),
+                        onPressed: _pickCustomDateTime,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
 
             // Live Category Status Banner
             AnimatedContainer(
               duration: const Duration(milliseconds: 250),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: _currentCategory.color.withOpacity(0.12),
+                color: _currentCategory.color.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: _currentCategory.color.withOpacity(0.4)),
+                border: Border.all(color: _currentCategory.color.withValues(alpha: 0.4)),
               ),
               child: Row(
                 children: [
@@ -132,7 +272,7 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
                         Text(
                           _currentCategory.rangeHint,
                           style: TextStyle(
-                            color: _currentCategory.color.withOpacity(0.85),
+                            color: _currentCategory.color.withValues(alpha: 0.85),
                             fontSize: 12,
                           ),
                         ),
@@ -216,7 +356,7 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
               title: const Text('Irregular heartbeat icon shown on machine?'),
               subtitle: const Text('Check if your monitor displayed an arrhythmia warning symbol'),
               value: _hasArrhythmia,
-              activeColor: AppColors.primary,
+              activeThumbColor: AppColors.primary,
               onChanged: (val) => setState(() => _hasArrhythmia = val),
             ),
             const SizedBox(height: 8),
@@ -239,31 +379,55 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
                 final dia = int.tryParse(_diaController.text) ?? 80;
                 final pulse = int.tryParse(_pulseController.text) ?? 72;
 
-                final reading = BpReading(
-                  id: const Uuid().v4(),
-                  memberId: member.id,
-                  systolic: sys,
-                  diastolic: dia,
-                  pulse: pulse,
-                  arm: _selectedArm,
-                  posture: _selectedPosture,
-                  hasArrhythmia: _hasArrhythmia,
-                  notes: _notesController.text.trim(),
-                  timestamp: DateTime.now(),
-                );
+                if (isEditing) {
+                  final updated = BpReading(
+                    id: widget.initialReading!.id,
+                    memberId: widget.initialReading!.memberId,
+                    systolic: sys,
+                    diastolic: dia,
+                    pulse: pulse,
+                    arm: _selectedArm,
+                    posture: _selectedPosture,
+                    hasArrhythmia: _hasArrhythmia,
+                    notes: _notesController.text.trim(),
+                    timestamp: _selectedDateTime,
+                  );
+                  ref.read(bpReadingsProvider.notifier).updateReading(updated);
+                  Navigator.pop(context);
 
-                ref.read(bpReadingsProvider.notifier).addReading(reading);
-                Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Blood pressure reading updated!'),
+                      backgroundColor: AppColors.secondary,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                } else {
+                  final reading = BpReading(
+                    id: const Uuid().v4(),
+                    memberId: member.id,
+                    systolic: sys,
+                    diastolic: dia,
+                    pulse: pulse,
+                    arm: _selectedArm,
+                    posture: _selectedPosture,
+                    hasArrhythmia: _hasArrhythmia,
+                    notes: _notesController.text.trim(),
+                    timestamp: _selectedDateTime,
+                  );
+                  ref.read(bpReadingsProvider.notifier).addReading(reading);
+                  Navigator.pop(context);
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Blood pressure recorded for ${member.name}!'),
-                    backgroundColor: AppColors.secondary,
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Blood pressure recorded for ${member.name}!'),
+                      backgroundColor: AppColors.secondary,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
               },
-              child: const Text('Save Blood Pressure Reading'),
+              child: Text(isEditing ? 'Update Blood Pressure Reading' : 'Save Blood Pressure Reading'),
             ),
           ],
         ),
@@ -282,7 +446,7 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
       decoration: BoxDecoration(
         color: AppColors.background,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.withOpacity(0.18)),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.18)),
       ),
       child: Column(
         children: [
@@ -299,7 +463,7 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
             controller: controller,
             keyboardType: TextInputType.number,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.w800,
               color: AppColors.textDark,

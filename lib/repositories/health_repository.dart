@@ -23,6 +23,8 @@ class HealthRepository {
 
   Future<void> addBpReading(BpReading reading) => _dbHelper.insertBp(reading);
 
+  Future<void> updateBpReading(BpReading reading) => _dbHelper.updateBp(reading);
+
   Future<void> deleteBpReading(String id) => _dbHelper.deleteBp(id);
 
   // Blood Glucose
@@ -31,6 +33,9 @@ class HealthRepository {
 
   Future<void> addGlucoseReading(GlucoseReading reading) =>
       _dbHelper.insertGlucose(reading);
+
+  Future<void> updateGlucoseReading(GlucoseReading reading) =>
+      _dbHelper.updateGlucose(reading);
 
   Future<void> deleteGlucoseReading(String id) => _dbHelper.deleteGlucose(id);
 

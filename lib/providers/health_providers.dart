@@ -98,6 +98,12 @@ class BpReadingsNotifier extends AsyncNotifier<List<BpReading>> {
     ref.invalidateSelf();
   }
 
+  Future<void> updateReading(BpReading reading) async {
+    final repo = ref.read(healthRepositoryProvider);
+    await repo.updateBpReading(reading);
+    ref.invalidateSelf();
+  }
+
   Future<void> deleteReading(String id) async {
     final repo = ref.read(healthRepositoryProvider);
     await repo.deleteBpReading(id);
@@ -126,6 +132,12 @@ class GlucoseReadingsNotifier extends AsyncNotifier<List<GlucoseReading>> {
   Future<void> addReading(GlucoseReading reading) async {
     final repo = ref.read(healthRepositoryProvider);
     await repo.addGlucoseReading(reading);
+    ref.invalidateSelf();
+  }
+
+  Future<void> updateReading(GlucoseReading reading) async {
+    final repo = ref.read(healthRepositoryProvider);
+    await repo.updateGlucoseReading(reading);
     ref.invalidateSelf();
   }
 

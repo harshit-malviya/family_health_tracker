@@ -6,6 +6,8 @@ import '../../models/bp_reading.dart';
 import '../../models/glucose_reading.dart';
 import '../../providers/health_providers.dart';
 import '../widgets/family_member_header.dart';
+import '../widgets/quick_bp_modal.dart';
+import '../widgets/quick_glucose_modal.dart';
 
 class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
@@ -137,81 +139,97 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         );
       },
       child: Container(
-        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey.withOpacity(0.15)),
+          border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
         ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.primaryLight,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const Icon(Icons.favorite, color: AppColors.primary, size: 24),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: () => _editBp(context, bp),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      Text(
-                        '${bp.systolic}/${bp.diastolic} mmHg',
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: bp.category.color.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          bp.category.label,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: bp.category.color,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Text(
-                        'Pulse: ${bp.pulse} bpm • ${bp.arm} arm, ${bp.posture}',
-                        style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
-                      ),
-                      if (bp.hasArrhythmia) ...[
-                        const SizedBox(width: 6),
-                        const Icon(Icons.warning_amber_rounded, size: 16, color: Colors.orange),
-                      ],
-                    ],
-                  ),
-                  if (bp.notes.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      'Note: "${bp.notes}"',
-                      style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: AppColors.textDark),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLight,
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                  ],
-                  const SizedBox(height: 4),
-                  Text(timeStr, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                    child: const Icon(Icons.favorite, color: AppColors.primary, size: 24),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              '${bp.systolic}/${bp.diastolic} mmHg',
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: bp.category.color.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                bp.category.label,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: bp.category.color,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Text(
+                              'Pulse: ${bp.pulse} bpm • ${bp.arm} arm, ${bp.posture}',
+                              style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                            ),
+                            if (bp.hasArrhythmia) ...[
+                              const SizedBox(width: 6),
+                              const Icon(Icons.warning_amber_rounded, size: 16, color: Colors.orange),
+                            ],
+                          ],
+                        ),
+                        if (bp.notes.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            'Note: "${bp.notes}"',
+                            style: const TextStyle(
+                                fontSize: 12, fontStyle: FontStyle.italic, color: AppColors.textDark),
+                          ),
+                        ],
+                        const SizedBox(height: 4),
+                        Text(timeStr, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, color: AppColors.primary, size: 20),
+                    tooltip: 'Edit Reading',
+                    onPressed: () => _editBp(context, bp),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Colors.grey, size: 20),
+                    tooltip: 'Delete Reading',
+                    onPressed: () => _confirmDelete(bp.id, true),
+                  ),
                 ],
               ),
             ),
-            IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.grey),
-              onPressed: () => _confirmDelete(bp.id, true),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -242,75 +260,109 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         );
       },
       child: Container(
-        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey.withOpacity(0.15)),
+          border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
         ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.secondaryLight,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const Icon(Icons.water_drop, color: AppColors.secondary, size: 24),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: () => _editGlucose(context, g),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      Text(
-                        valueStr,
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: g.category.color.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          g.category.label,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: g.category.color,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Context: ${g.mealContext.label}',
-                    style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
-                  ),
-                  if (g.medicationNotes.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      'Medication: "${g.medicationNotes}"',
-                      style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: AppColors.textDark),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.secondaryLight,
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                  ],
-                  const SizedBox(height: 4),
-                  Text(timeStr, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                    child: const Icon(Icons.water_drop, color: AppColors.secondary, size: 24),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              valueStr,
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: g.category.color.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                g.category.label,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: g.category.color,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Context: ${g.mealContext.label}',
+                          style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                        ),
+                        if (g.medicationNotes.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            'Medication: "${g.medicationNotes}"',
+                            style: const TextStyle(
+                                fontSize: 12, fontStyle: FontStyle.italic, color: AppColors.textDark),
+                          ),
+                        ],
+                        const SizedBox(height: 4),
+                        Text(timeStr, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, color: AppColors.secondary, size: 20),
+                    tooltip: 'Edit Reading',
+                    onPressed: () => _editGlucose(context, g),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Colors.grey, size: 20),
+                    tooltip: 'Delete Reading',
+                    onPressed: () => _confirmDelete(g.id, false),
+                  ),
                 ],
               ),
             ),
-            IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.grey),
-              onPressed: () => _confirmDelete(g.id, false),
-            ),
-          ],
+          ),
         ),
       ),
+    );
+  }
+
+  void _editBp(BuildContext context, BpReading bp) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => QuickBpModal(initialReading: bp),
+    );
+  }
+
+  void _editGlucose(BuildContext context, GlucoseReading g) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => QuickGlucoseModal(initialReading: g),
     );
   }
 

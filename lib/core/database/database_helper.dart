@@ -165,6 +165,16 @@ class DatabaseHelper {
     return maps.map((m) => BpReading.fromMap(m)).toList();
   }
 
+  Future<void> updateBp(BpReading reading) async {
+    final db = await instance.database;
+    await db.update(
+      'bp_readings',
+      reading.toMap(),
+      where: 'id = ?',
+      whereArgs: [reading.id],
+    );
+  }
+
   Future<void> deleteBp(String id) async {
     final db = await instance.database;
     await db.delete('bp_readings', where: 'id = ?', whereArgs: [id]);
@@ -178,6 +188,16 @@ class DatabaseHelper {
       'glucose_readings',
       reading.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> updateGlucose(GlucoseReading reading) async {
+    final db = await instance.database;
+    await db.update(
+      'glucose_readings',
+      reading.toMap(),
+      where: 'id = ?',
+      whereArgs: [reading.id],
     );
   }
 

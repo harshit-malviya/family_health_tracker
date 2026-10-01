@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import '../../models/glucose_reading.dart';
 import '../../core/constants/clinical_standards.dart';
@@ -7,23 +8,45 @@ import '../../core/constants/app_colors.dart';
 import '../../providers/health_providers.dart';
 
 class QuickGlucoseModal extends ConsumerStatefulWidget {
-  const QuickGlucoseModal({super.key});
+  final GlucoseReading? initialReading;
+
+  const QuickGlucoseModal({super.key, this.initialReading});
 
   @override
   ConsumerState<QuickGlucoseModal> createState() => _QuickGlucoseModalState();
 }
 
 class _QuickGlucoseModalState extends ConsumerState<QuickGlucoseModal> {
-  final _valueController = TextEditingController(text: '95');
-  final _medsController = TextEditingController();
+  late final TextEditingController _valueController;
+  late final TextEditingController _medsController;
 
-  MealContext _selectedMealContext = MealContext.fasting;
+  late MealContext _selectedMealContext;
+  late DateTime _selectedDateTime;
   GlucoseCategory _currentCategory = GlucoseCategory.normal;
 
   @override
   void initState() {
     super.initState();
+    final initial = widget.initialReading;
+    final unit = ref.read(glucoseUnitProvider);
+
+    if (initial != null) {
+      final formattedVal = unit == 'mmol/L'
+          ? initial.valueMmol.toStringAsFixed(1)
+          : initial.valueMgDl.toStringAsFixed(0);
+      _valueController = TextEditingController(text: formattedVal);
+      _medsController = TextEditingController(text: initial.medicationNotes);
+      _selectedMealContext = initial.mealContext;
+      _selectedDateTime = initial.timestamp;
+    } else {
+      _valueController = TextEditingController(text: unit == 'mmol/L' ? '5.3' : '95');
+      _medsController = TextEditingController();
+      _selectedMealContext = MealContext.fasting;
+      _selectedDateTime = DateTime.now();
+    }
+
     _valueController.addListener(_updateCategory);
+    _updateCategory();
   }
 
   void _updateCategory() {
@@ -43,11 +66,53 @@ class _QuickGlucoseModalState extends ConsumerState<QuickGlucoseModal> {
     super.dispose();
   }
 
+  bool _isToday(DateTime dt) {
+    final now = DateTime.now();
+    return dt.year == now.year && dt.month == now.month && dt.day == now.day;
+  }
+
+  bool _isYesterday(DateTime dt) {
+    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+    return dt.year == yesterday.year && dt.month == yesterday.month && dt.day == yesterday.day;
+  }
+
+  Future<void> _pickCustomDateTime() async {
+    final now = DateTime.now();
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: _selectedDateTime.isAfter(now) ? now : _selectedDateTime,
+      firstDate: now.subtract(const Duration(days: 365 * 5)), // Up to 5 years ago
+      lastDate: now,
+    );
+
+    if (pickedDate == null || !mounted) return;
+
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_selectedDateTime),
+    );
+
+    if (pickedTime == null || !mounted) return;
+
+    setState(() {
+      _selectedDateTime = DateTime(
+        pickedDate.year,
+        pickedDate.month,
+        pickedDate.day,
+        pickedTime.hour,
+        pickedTime.minute,
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final member = ref.watch(activeMemberProvider);
     final unit = ref.watch(glucoseUnitProvider);
     final theme = Theme.of(context);
+    final isEditing = widget.initialReading != null;
+
+    final formattedDateStr = DateFormat('EEE, MMM d, yyyy • h:mm a').format(_selectedDateTime);
 
     return Container(
       padding: EdgeInsets.only(
@@ -81,7 +146,7 @@ class _QuickGlucoseModalState extends ConsumerState<QuickGlucoseModal> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Log Blood Sugar',
+                      isEditing ? 'Edit Blood Sugar' : 'Log Blood Sugar',
                       style: theme.textTheme.titleLarge?.copyWith(fontSize: 20),
                     ),
                     Text(
@@ -97,16 +162,98 @@ class _QuickGlucoseModalState extends ConsumerState<QuickGlucoseModal> {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
+
+            // Date & Time Selection Box
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.grey.withValues(alpha: 0.18)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.secondary),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Date & Time of Reading',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                      const Spacer(),
+                      InkWell(
+                        onTap: _pickCustomDateTime,
+                        child: Text(
+                          formattedDateStr,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.secondary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      ChoiceChip(
+                        label: const Text('Now / Today'),
+                        selected: _isToday(_selectedDateTime),
+                        selectedColor: AppColors.secondaryLight,
+                        onSelected: (val) {
+                          if (val) {
+                            setState(() => _selectedDateTime = DateTime.now());
+                          }
+                        },
+                      ),
+                      ChoiceChip(
+                        label: const Text('Yesterday'),
+                        selected: _isYesterday(_selectedDateTime),
+                        selectedColor: AppColors.secondaryLight,
+                        onSelected: (val) {
+                          if (val) {
+                            final now = DateTime.now();
+                            setState(() {
+                              _selectedDateTime = DateTime(
+                                now.year,
+                                now.month,
+                                now.day - 1,
+                                _selectedDateTime.hour,
+                                _selectedDateTime.minute,
+                              );
+                            });
+                          }
+                        },
+                      ),
+                      ActionChip(
+                        avatar: const Icon(Icons.edit_calendar, size: 16, color: AppColors.secondary),
+                        label: const Text('Pick Date & Time'),
+                        onPressed: _pickCustomDateTime,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
 
             // Live Category Status Banner
             AnimatedContainer(
               duration: const Duration(milliseconds: 250),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: _currentCategory.color.withOpacity(0.12),
+                color: _currentCategory.color.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: _currentCategory.color.withOpacity(0.4)),
+                border: Border.all(color: _currentCategory.color.withValues(alpha: 0.4)),
               ),
               child: Row(
                 children: [
@@ -127,7 +274,7 @@ class _QuickGlucoseModalState extends ConsumerState<QuickGlucoseModal> {
                         Text(
                           _currentCategory.rangeHint,
                           style: TextStyle(
-                            color: _currentCategory.color.withOpacity(0.85),
+                            color: _currentCategory.color.withValues(alpha: 0.85),
                             fontSize: 12,
                           ),
                         ),
@@ -145,7 +292,7 @@ class _QuickGlucoseModalState extends ConsumerState<QuickGlucoseModal> {
               decoration: BoxDecoration(
                 color: AppColors.background,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -183,7 +330,7 @@ class _QuickGlucoseModalState extends ConsumerState<QuickGlucoseModal> {
                     backgroundColor: AppColors.secondaryLight,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
-                      side: BorderSide(color: AppColors.secondary.withOpacity(0.3)),
+                      side: BorderSide(color: AppColors.secondary.withValues(alpha: 0.3)),
                     ),
                     onPressed: () {
                       final newUnit = unit == 'mg/dL' ? 'mmol/L' : 'mg/dL';
@@ -255,27 +402,48 @@ class _QuickGlucoseModalState extends ConsumerState<QuickGlucoseModal> {
                     ? ClinicalStandards.mmolToMgDl(inputVal)
                     : inputVal;
 
-                final reading = GlucoseReading(
-                  id: const Uuid().v4(),
-                  memberId: member.id,
-                  valueMgDl: mgDl,
-                  mealContext: _selectedMealContext,
-                  medicationNotes: _medsController.text.trim(),
-                  timestamp: DateTime.now(),
-                );
+                if (isEditing) {
+                  final updated = GlucoseReading(
+                    id: widget.initialReading!.id,
+                    memberId: widget.initialReading!.memberId,
+                    valueMgDl: mgDl,
+                    mealContext: _selectedMealContext,
+                    medicationNotes: _medsController.text.trim(),
+                    timestamp: _selectedDateTime,
+                  );
+                  ref.read(glucoseReadingsProvider.notifier).updateReading(updated);
+                  Navigator.pop(context);
 
-                ref.read(glucoseReadingsProvider.notifier).addReading(reading);
-                Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Blood glucose reading updated!'),
+                      backgroundColor: AppColors.secondary,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                } else {
+                  final reading = GlucoseReading(
+                    id: const Uuid().v4(),
+                    memberId: member.id,
+                    valueMgDl: mgDl,
+                    mealContext: _selectedMealContext,
+                    medicationNotes: _medsController.text.trim(),
+                    timestamp: _selectedDateTime,
+                  );
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Blood glucose recorded for ${member.name}!'),
-                    backgroundColor: AppColors.secondary,
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
+                  ref.read(glucoseReadingsProvider.notifier).addReading(reading);
+                  Navigator.pop(context);
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Blood glucose recorded for ${member.name}!'),
+                      backgroundColor: AppColors.secondary,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
               },
-              child: const Text('Save Blood Sugar Reading'),
+              child: Text(isEditing ? 'Update Blood Sugar Reading' : 'Save Blood Sugar Reading'),
             ),
           ],
         ),

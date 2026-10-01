@@ -121,5 +121,61 @@ void main() {
       expect(restored.mealContext, MealContext.fasting);
       expect(restored.medicationNotes, 'Metformin');
     });
+
+    test('BpReading past-date assignment and update', () {
+      final pastDate = DateTime(2025, 4, 15, 9, 30);
+      final bp = BpReading(
+        id: 'bp_past',
+        memberId: 'test_1',
+        systolic: 142,
+        diastolic: 92,
+        pulse: 75,
+        timestamp: pastDate,
+      );
+
+      expect(bp.timestamp, pastDate);
+      expect(bp.category, BpCategory.stage2);
+
+      // Simulate editing values and date
+      final newPastDate = DateTime(2025, 4, 15, 18, 0);
+      final updatedBp = BpReading(
+        id: bp.id,
+        memberId: bp.memberId,
+        systolic: 124,
+        diastolic: 76,
+        pulse: 70,
+        timestamp: newPastDate,
+      );
+
+      expect(updatedBp.id, bp.id);
+      expect(updatedBp.systolic, 124);
+      expect(updatedBp.category, BpCategory.elevated);
+      expect(updatedBp.timestamp, newPastDate);
+    });
+
+    test('GlucoseReading past-date assignment and update', () {
+      final pastDate = DateTime(2025, 1, 10, 8, 0);
+      final glucose = GlucoseReading(
+        id: 'glu_past',
+        memberId: 'test_1',
+        valueMgDl: 165,
+        mealContext: MealContext.postMeal,
+        timestamp: pastDate,
+      );
+
+      expect(glucose.timestamp, pastDate);
+      expect(glucose.category, GlucoseCategory.normal); // post-meal <180 is normal
+
+      // Simulate editing to fasting reading
+      final updatedGlucose = GlucoseReading(
+        id: glucose.id,
+        memberId: glucose.memberId,
+        valueMgDl: 165,
+        mealContext: MealContext.fasting,
+        timestamp: pastDate,
+      );
+
+      expect(updatedGlucose.category, GlucoseCategory.elevated); // fasting >130 is elevated
+    });
   });
 }
