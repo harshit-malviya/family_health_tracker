@@ -34,6 +34,8 @@
   "deleteReadingTitle": "रीडिंग हटाएं?",
   "deleteReadingConfirm": "क्या आप वाकई इस रीडिंग को हमेशा के लिए हटाना चाहते हैं?",
   "readingDeleted": "रीडिंग हटा दी गई।",
+  "undo": "वापस करें",
+  "longPressOptionsHint": "विकल्पों के लिए कार्ड को दबाकर रखें।",
   "editReading": "रीडिंग संपादित करें",
   "delete": "हटाएं",
   "cancel": "रद्द करें",

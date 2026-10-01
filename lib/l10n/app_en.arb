@@ -71,6 +71,8 @@
   "deleteReadingTitle": "Delete Reading?",
   "deleteReadingConfirm": "Are you sure you want to permanently delete this reading?",
   "readingDeleted": "Reading deleted.",
+  "undo": "Undo",
+  "longPressOptionsHint": "Long press card to edit or delete.",
   "editReading": "Edit Reading",
   "delete": "Delete",
   "cancel": "Cancel",

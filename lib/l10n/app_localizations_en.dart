@@ -111,6 +111,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get readingDeleted => 'Reading deleted.';
 
   @override
+  String get undo => 'Undo';
+
+  @override
+  String get longPressOptionsHint => 'Long press card to edit or delete.';
+
+  @override
   String get editReading => 'Edit Reading';
 
   @override

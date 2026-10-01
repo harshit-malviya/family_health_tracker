@@ -284,6 +284,18 @@ abstract class AppLocalizations {
   /// **'Reading deleted.'**
   String get readingDeleted;
 
+  /// No description provided for @undo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get undo;
+
+  /// No description provided for @longPressOptionsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Long press card to edit or delete.'**
+  String get longPressOptionsHint;
+
   /// No description provided for @editReading.
   ///
   /// In en, this message translates to:

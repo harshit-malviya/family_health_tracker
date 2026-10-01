@@ -111,6 +111,12 @@ class AppLocalizationsHi extends AppLocalizations {
   String get readingDeleted => 'रीडिंग हटा दी गई।';
 
   @override
+  String get undo => 'वापस करें';
+
+  @override
+  String get longPressOptionsHint => 'विकल्पों के लिए कार्ड को दबाकर रखें।';
+
+  @override
   String get editReading => 'रीडिंग संपादित करें';
 
   @override

@@ -148,35 +148,28 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     final armStr = bp.arm.toLowerCase() == 'left' ? l10n.armLeft : l10n.armRight;
     final postureStr = _getLocalizedPosture(l10n, bp.posture);
 
-    return Dismissible(
+    return Container(
       key: Key(bp.id),
-      direction: DismissDirection.endToStart,
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        decoration: BoxDecoration(
-          color: Colors.red.shade400,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: const Icon(Icons.delete, color: Colors.white),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
       ),
-      onDismissed: (_) {
-        ref.read(bpReadingsProvider.notifier).deleteReading(bp.id);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.readingDeleted)),
-        );
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(20),
-            onLongPress: () => _showCardActionSheet(context, bp: bp),
+          onTap: () {
+            ScaffoldMessenger.of(context)
+              ..hideCurrentSnackBar()
+              ..showSnackBar(
+                SnackBar(
+                  content: Text(l10n.longPressOptionsHint),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+          },
+          onLongPress: () => _showCardActionSheet(context, bp: bp),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -259,8 +252,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             ),
           ),
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildGlucoseTile(BuildContext context, GlucoseReading g, String unit) {
@@ -270,35 +262,28 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         ? '${g.valueMmol.toStringAsFixed(1)} mmol/L'
         : '${g.valueMgDl.toStringAsFixed(0)} mg/dL';
 
-    return Dismissible(
+    return Container(
       key: Key(g.id),
-      direction: DismissDirection.endToStart,
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        decoration: BoxDecoration(
-          color: Colors.red.shade400,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: const Icon(Icons.delete, color: Colors.white),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
       ),
-      onDismissed: (_) {
-        ref.read(glucoseReadingsProvider.notifier).deleteReading(g.id);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.readingDeleted)),
-        );
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(20),
-            onLongPress: () => _showCardActionSheet(context, glucose: g),
+          onTap: () {
+            ScaffoldMessenger.of(context)
+              ..hideCurrentSnackBar()
+              ..showSnackBar(
+                SnackBar(
+                  content: Text(l10n.longPressOptionsHint),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+          },
+          onLongPress: () => _showCardActionSheet(context, glucose: g),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -369,8 +354,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             ),
           ),
         ),
-      ),
-    );
+      );
   }
 
   String _getLocalizedPosture(AppLocalizations l10n, String posture) {
@@ -455,8 +439,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 subtitle: Text(l10n.deleteReadingConfirm),
                 onTap: () {
                   Navigator.pop(ctx);
-                  if (bp != null) _confirmDelete(bp.id, true);
-                  if (glucose != null) _confirmDelete(glucose.id, false);
+                  if (bp != null) _confirmDelete(bp: bp);
+                  if (glucose != null) _confirmDelete(glucose: glucose);
                 },
               ),
             ],
@@ -484,7 +468,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     );
   }
 
-  void _confirmDelete(String id, bool isBp) {
+  void _confirmDelete({BpReading? bp, GlucoseReading? glucose}) {
     final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
@@ -495,12 +479,38 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
           TextButton(
             onPressed: () {
-              if (isBp) {
-                ref.read(bpReadingsProvider.notifier).deleteReading(id);
-              } else {
-                ref.read(glucoseReadingsProvider.notifier).deleteReading(id);
-              }
               Navigator.pop(ctx);
+              if (bp != null) {
+                ref.read(bpReadingsProvider.notifier).deleteReading(bp.id);
+                ScaffoldMessenger.of(context)
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(
+                    SnackBar(
+                      content: Text(l10n.readingDeleted),
+                      action: SnackBarAction(
+                        label: l10n.undo,
+                        onPressed: () {
+                          ref.read(bpReadingsProvider.notifier).addReading(bp);
+                        },
+                      ),
+                    ),
+                  );
+              } else if (glucose != null) {
+                ref.read(glucoseReadingsProvider.notifier).deleteReading(glucose.id);
+                ScaffoldMessenger.of(context)
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(
+                    SnackBar(
+                      content: Text(l10n.readingDeleted),
+                      action: SnackBarAction(
+                        label: l10n.undo,
+                        onPressed: () {
+                          ref.read(glucoseReadingsProvider.notifier).addReading(glucose);
+                        },
+                      ),
+                    ),
+                  );
+              }
             },
             child: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
           ),
