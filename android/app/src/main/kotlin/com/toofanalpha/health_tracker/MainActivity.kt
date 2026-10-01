@@ -1,4 +1,4 @@
-package com.family.health_tracker
+package com.toofanalpha.health_tracker
 
 import io.flutter.embedding.android.FlutterActivity
 

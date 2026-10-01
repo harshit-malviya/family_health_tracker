@@ -22,8 +22,7 @@ class SettingsScreen extends ConsumerWidget {
         children: [
           // Units Section
           _buildSectionHeader('Clinical Preferences'),
-          Container(
-            decoration: _boxDecoration(),
+          _buildCardSection(
             child: Column(
               children: [
                 ListTile(
@@ -48,8 +47,7 @@ class SettingsScreen extends ConsumerWidget {
 
           // Backup & Restore Section
           _buildSectionHeader('Data Backup & Portability'),
-          Container(
-            decoration: _boxDecoration(),
+          _buildCardSection(
             child: Column(
               children: [
                 ListTile(
@@ -84,8 +82,7 @@ class SettingsScreen extends ConsumerWidget {
 
           // Family Members Management Section
           _buildSectionHeader('Family Profiles'),
-          Container(
-            decoration: _boxDecoration(),
+          _buildCardSection(
             child: membersAsync.when(
               loading: () => const Padding(
                 padding: EdgeInsets.all(16),
@@ -181,11 +178,15 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  BoxDecoration _boxDecoration() {
-    return BoxDecoration(
+  Widget _buildCardSection({required Widget child}) {
+    return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: Colors.grey.withOpacity(0.15)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: Colors.grey.withValues(alpha: 0.15)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: child,
     );
   }
 
