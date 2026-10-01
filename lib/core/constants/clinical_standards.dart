@@ -158,4 +158,102 @@ class ClinicalStandards {
   static double mmolToMgDl(double mmol) {
     return mmol * 18.0182;
   }
+
+  // Clinical physiological boundaries
+  static const int minSystolic = 40;
+  static const int maxSystolic = 300;
+  static const int minDiastolic = 30;
+  static const int maxDiastolic = 200;
+  static const int minPulsePressure = 10;
+  static const int minPulse = 30;
+  static const int maxPulse = 250;
+
+  static const double minGlucoseMgDl = 20.0;
+  static const double maxGlucoseMgDl = 600.0;
+  static const double minGlucoseMmol = 1.1;
+  static const double maxGlucoseMmol = 33.3;
+
+  /// Validates blood pressure inputs.
+  /// Returns a validation error code or null if valid.
+  static BpValidationError? validateBp({
+    required int? systolic,
+    required int? diastolic,
+    required int? pulse,
+  }) {
+    if (systolic == null || systolic < minSystolic || systolic > maxSystolic) {
+      return BpValidationError.invalidSystolic;
+    }
+    if (diastolic == null || diastolic < minDiastolic || diastolic > maxDiastolic) {
+      return BpValidationError.invalidDiastolic;
+    }
+    if (systolic - diastolic < minPulsePressure) {
+      return BpValidationError.systolicMustExceedDiastolic;
+    }
+    if (pulse == null || pulse < minPulse || pulse > maxPulse) {
+      return BpValidationError.invalidPulse;
+    }
+    return null;
+  }
+
+  /// Validates blood glucose inputs based on unit.
+  /// Returns a validation error code or null if valid.
+  static GlucoseValidationError? validateGlucose({
+    required double? value,
+    required String unit,
+  }) {
+    if (value == null) {
+      return unit == 'mmol/L'
+          ? GlucoseValidationError.invalidMmol
+          : GlucoseValidationError.invalidMgDl;
+    }
+    if (unit == 'mmol/L') {
+      if (value < minGlucoseMmol || value > maxGlucoseMmol) {
+        return GlucoseValidationError.invalidMmol;
+      }
+    } else {
+      if (value < minGlucoseMgDl || value > maxGlucoseMgDl) {
+        return GlucoseValidationError.invalidMgDl;
+      }
+    }
+    return null;
+  }
 }
+
+enum BpValidationError {
+  invalidSystolic,
+  invalidDiastolic,
+  systolicMustExceedDiastolic,
+  invalidPulse,
+}
+
+extension BpValidationErrorLocalization on BpValidationError {
+  String localizedMessage(AppLocalizations l10n) {
+    switch (this) {
+      case BpValidationError.invalidSystolic:
+        return l10n.errorInvalidSystolic;
+      case BpValidationError.invalidDiastolic:
+        return l10n.errorInvalidDiastolic;
+      case BpValidationError.systolicMustExceedDiastolic:
+        return l10n.errorSystolicMustExceedDiastolic;
+      case BpValidationError.invalidPulse:
+        return l10n.errorInvalidPulse;
+    }
+  }
+}
+
+enum GlucoseValidationError {
+  invalidMgDl,
+  invalidMmol,
+}
+
+extension GlucoseValidationErrorLocalization on GlucoseValidationError {
+  String localizedMessage(AppLocalizations l10n) {
+    switch (this) {
+      case GlucoseValidationError.invalidMgDl:
+        return l10n.errorInvalidGlucoseMgDl;
+      case GlucoseValidationError.invalidMmol:
+        return l10n.errorInvalidGlucoseMmol;
+    }
+  }
+}
+

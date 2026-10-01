@@ -522,4 +522,31 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get manageProfiles => 'प्रोफ़ाइल प्रबंधित करें';
+
+  @override
+  String get errorInvalidSystolic =>
+      'सिस्टोलिक 40 और 300 mmHg के बीच होना चाहिए';
+
+  @override
+  String get errorInvalidDiastolic =>
+      'डायस्टोलिक 30 और 200 mmHg के बीच होना चाहिए';
+
+  @override
+  String get errorSystolicMustExceedDiastolic =>
+      'सिस्टोलिक डायस्टोलिक से कम से कम 10 mmHg अधिक होना चाहिए';
+
+  @override
+  String get errorInvalidPulse => 'पल्स 30 और 250 bpm के बीच होनी चाहिए';
+
+  @override
+  String get errorInvalidGlucoseMgDl =>
+      'ग्लूकोज 20 और 600 mg/dL के बीच होना चाहिए';
+
+  @override
+  String get errorInvalidGlucoseMmol =>
+      'ग्लूकोज 1.1 और 33.3 mmol/L के बीच होना चाहिए';
+
+  @override
+  String get errorSaveFailed =>
+      'रीडिंग सहेजने में विफल। कृपया पुनः प्रयास करें।';
 }

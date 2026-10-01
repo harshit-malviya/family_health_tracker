@@ -29,6 +29,12 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
   late DateTime _selectedDateTime;
 
   BpCategory _currentCategory = BpCategory.normal;
+  bool _isSubmitting = false;
+  bool _hasAttemptedSubmit = false;
+  String? _validationErrorMessage;
+  bool _sysHasError = false;
+  bool _diaHasError = false;
+  bool _pulseHasError = false;
 
   @override
   void initState() {
@@ -44,16 +50,44 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
     _hasArrhythmia = initial?.hasArrhythmia ?? false;
     _selectedDateTime = initial?.timestamp ?? DateTime.now();
 
-    _sysController.addListener(_updateCategory);
-    _diaController.addListener(_updateCategory);
-    _updateCategory();
+    _sysController.addListener(_onInputsChanged);
+    _diaController.addListener(_onInputsChanged);
+    _pulseController.addListener(_onInputsChanged);
+    _onInputsChanged();
   }
 
-  void _updateCategory() {
-    final sys = int.tryParse(_sysController.text) ?? 120;
-    final dia = int.tryParse(_diaController.text) ?? 80;
+  void _onInputsChanged() {
+    final sys = int.tryParse(_sysController.text.trim()) ?? 120;
+    final dia = int.tryParse(_diaController.text.trim()) ?? 80;
+
     setState(() {
       _currentCategory = ClinicalStandards.evaluateBp(sys, dia);
+      if (_hasAttemptedSubmit) {
+        final l10n = AppLocalizations.of(context);
+        if (l10n != null) {
+          final s = int.tryParse(_sysController.text.trim());
+          final d = int.tryParse(_diaController.text.trim());
+          final p = int.tryParse(_pulseController.text.trim());
+          final err = ClinicalStandards.validateBp(
+            systolic: s,
+            diastolic: d,
+            pulse: p,
+          );
+          if (err != null) {
+            _validationErrorMessage = err.localizedMessage(l10n);
+            _sysHasError = err == BpValidationError.invalidSystolic ||
+                err == BpValidationError.systolicMustExceedDiastolic;
+            _diaHasError = err == BpValidationError.invalidDiastolic ||
+                err == BpValidationError.systolicMustExceedDiastolic;
+            _pulseHasError = err == BpValidationError.invalidPulse;
+          } else {
+            _validationErrorMessage = null;
+            _sysHasError = false;
+            _diaHasError = false;
+            _pulseHasError = false;
+          }
+        }
+      }
     });
   }
 
@@ -114,18 +148,17 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
 
     final formattedDateStr = DateFormat('EEE, MMM d, yyyy • h:mm a').format(_selectedDateTime);
 
-    return Container(
-      padding: EdgeInsets.only(
-        top: 24,
-        left: 24,
-        right: 24,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-      ),
+    return Material(
+      color: Colors.white,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+      clipBehavior: Clip.antiAlias,
       child: SingleChildScrollView(
+        padding: EdgeInsets.only(
+          top: 24,
+          left: 24,
+          right: 24,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -297,6 +330,7 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
                     label: 'SYS',
                     sublabel: l10n.systolicUpper,
                     color: AppColors.primary,
+                    hasError: _sysHasError,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -306,6 +340,7 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
                     label: 'DIA',
                     sublabel: l10n.diastolicLower,
                     color: AppColors.secondary,
+                    hasError: _diaHasError,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -315,6 +350,7 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
                     label: 'PULSE',
                     sublabel: l10n.pulseBpm,
                     color: Colors.purple.shade400,
+                    hasError: _pulseHasError,
                   ),
                 ),
               ],
@@ -374,49 +410,50 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
                 prefixIcon: const Icon(Icons.edit_note),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
+
+            // Inline error message banner
+            if (_validationErrorMessage != null) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.red.shade300),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.error_outline, color: Colors.red.shade700, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        _validationErrorMessage!,
+                        style: TextStyle(
+                          color: Colors.red.shade700,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
 
             // Submit Button
             ElevatedButton(
-              onPressed: () {
-                if (member == null) return;
-                final sys = int.tryParse(_sysController.text) ?? 120;
-                final dia = int.tryParse(_diaController.text) ?? 80;
-                final pulse = int.tryParse(_pulseController.text) ?? 72;
-
-                if (isEditing) {
-                  final updated = BpReading(
-                    id: widget.initialReading!.id,
-                    memberId: widget.initialReading!.memberId,
-                    systolic: sys,
-                    diastolic: dia,
-                    pulse: pulse,
-                    arm: _selectedArm,
-                    posture: _selectedPosture,
-                    hasArrhythmia: _hasArrhythmia,
-                    notes: _notesController.text.trim(),
-                    timestamp: _selectedDateTime,
-                  );
-                  ref.read(bpReadingsProvider.notifier).updateReading(updated);
-                  Navigator.pop(context);
-                } else {
-                  final reading = BpReading(
-                    id: const Uuid().v4(),
-                    memberId: member.id,
-                    systolic: sys,
-                    diastolic: dia,
-                    pulse: pulse,
-                    arm: _selectedArm,
-                    posture: _selectedPosture,
-                    hasArrhythmia: _hasArrhythmia,
-                    notes: _notesController.text.trim(),
-                    timestamp: _selectedDateTime,
-                  );
-                  ref.read(bpReadingsProvider.notifier).addReading(reading);
-                  Navigator.pop(context);
-                }
-              },
-              child: Text(isEditing ? l10n.updateBpReading : l10n.saveBpReading),
+              onPressed: _isSubmitting ? null : _handleSave,
+              child: _isSubmitting
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(isEditing ? l10n.updateBpReading : l10n.saveBpReading),
             ),
           ],
         ),
@@ -424,18 +461,105 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
     );
   }
 
+  Future<void> _handleSave() async {
+    if (_isSubmitting) return;
+
+    final member = ref.read(activeMemberProvider);
+    if (member == null) return;
+
+    final l10n = AppLocalizations.of(context)!;
+    final sys = int.tryParse(_sysController.text.trim());
+    final dia = int.tryParse(_diaController.text.trim());
+    final pulse = int.tryParse(_pulseController.text.trim());
+
+    final err = ClinicalStandards.validateBp(
+      systolic: sys,
+      diastolic: dia,
+      pulse: pulse,
+    );
+
+    _hasAttemptedSubmit = true;
+
+    if (err != null) {
+      setState(() {
+        _validationErrorMessage = err.localizedMessage(l10n);
+        _sysHasError = err == BpValidationError.invalidSystolic ||
+            err == BpValidationError.systolicMustExceedDiastolic;
+        _diaHasError = err == BpValidationError.invalidDiastolic ||
+            err == BpValidationError.systolicMustExceedDiastolic;
+        _pulseHasError = err == BpValidationError.invalidPulse;
+      });
+      return;
+    }
+
+    setState(() {
+      _validationErrorMessage = null;
+      _sysHasError = false;
+      _diaHasError = false;
+      _pulseHasError = false;
+      _isSubmitting = true;
+    });
+
+    final isEditing = widget.initialReading != null;
+
+    try {
+      if (isEditing) {
+        final updated = BpReading(
+          id: widget.initialReading!.id,
+          memberId: widget.initialReading!.memberId,
+          systolic: sys!,
+          diastolic: dia!,
+          pulse: pulse!,
+          arm: _selectedArm,
+          posture: _selectedPosture,
+          hasArrhythmia: _hasArrhythmia,
+          notes: _notesController.text.trim(),
+          timestamp: _selectedDateTime,
+        );
+        await ref.read(bpReadingsProvider.notifier).updateReading(updated);
+      } else {
+        final reading = BpReading(
+          id: const Uuid().v4(),
+          memberId: member.id,
+          systolic: sys!,
+          diastolic: dia!,
+          pulse: pulse!,
+          arm: _selectedArm,
+          posture: _selectedPosture,
+          hasArrhythmia: _hasArrhythmia,
+          notes: _notesController.text.trim(),
+          timestamp: _selectedDateTime,
+        );
+        await ref.read(bpReadingsProvider.notifier).addReading(reading);
+      }
+
+      if (!mounted) return;
+      Navigator.pop(context);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+        _validationErrorMessage = l10n.errorSaveFailed;
+      });
+    }
+  }
+
   Widget _buildNumberInput({
     required TextEditingController controller,
     required String label,
     required String sublabel,
     required Color color,
+    bool hasError = false,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
       decoration: BoxDecoration(
-        color: AppColors.background,
+        color: hasError ? Colors.red.shade50.withValues(alpha: 0.5) : AppColors.background,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.18)),
+        border: Border.all(
+          color: hasError ? Colors.red.shade400 : Colors.grey.withValues(alpha: 0.18),
+          width: hasError ? 1.5 : 1.0,
+        ),
       ),
       child: Column(
         children: [
@@ -444,7 +568,7 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: color,
+              color: hasError ? Colors.red.shade600 : color,
               letterSpacing: 0.5,
             ),
           ),
@@ -452,10 +576,10 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
             controller: controller,
             keyboardType: TextInputType.number,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.w800,
-              color: AppColors.textDark,
+              color: hasError ? Colors.red.shade700 : AppColors.textDark,
             ),
             decoration: const InputDecoration(
               isDense: true,
@@ -468,7 +592,10 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
           ),
           Text(
             sublabel,
-            style: const TextStyle(fontSize: 10, color: AppColors.textMuted),
+            style: TextStyle(
+              fontSize: 10,
+              color: hasError ? Colors.red.shade600 : AppColors.textMuted,
+            ),
           ),
         ],
       ),

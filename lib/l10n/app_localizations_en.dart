@@ -520,4 +520,29 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get manageProfiles => 'Manage Profiles';
+
+  @override
+  String get errorInvalidSystolic => 'Systolic must be between 40 and 300 mmHg';
+
+  @override
+  String get errorInvalidDiastolic =>
+      'Diastolic must be between 30 and 200 mmHg';
+
+  @override
+  String get errorSystolicMustExceedDiastolic =>
+      'Systolic must be at least 10 mmHg higher than Diastolic';
+
+  @override
+  String get errorInvalidPulse => 'Pulse must be between 30 and 250 bpm';
+
+  @override
+  String get errorInvalidGlucoseMgDl =>
+      'Glucose must be between 20 and 600 mg/dL';
+
+  @override
+  String get errorInvalidGlucoseMmol =>
+      'Glucose must be between 1.1 and 33.3 mmol/L';
+
+  @override
+  String get errorSaveFailed => 'Failed to save reading. Please try again.';
 }

@@ -24,6 +24,10 @@ class _QuickGlucoseModalState extends ConsumerState<QuickGlucoseModal> {
   late MealContext _selectedMealContext;
   late DateTime _selectedDateTime;
   GlucoseCategory _currentCategory = GlucoseCategory.normal;
+  bool _isSubmitting = false;
+  bool _hasAttemptedSubmit = false;
+  String? _validationErrorMessage;
+  bool _valueHasError = false;
 
   @override
   void initState() {
@@ -46,17 +50,31 @@ class _QuickGlucoseModalState extends ConsumerState<QuickGlucoseModal> {
       _selectedDateTime = DateTime.now();
     }
 
-    _valueController.addListener(_updateCategory);
-    _updateCategory();
+    _valueController.addListener(_onInputsChanged);
+    _onInputsChanged();
   }
 
-  void _updateCategory() {
+  void _onInputsChanged() {
     final unit = ref.read(glucoseUnitProvider);
-    final val = double.tryParse(_valueController.text) ?? 95.0;
+    final val = double.tryParse(_valueController.text.trim()) ?? 95.0;
     final mgDl = unit == 'mmol/L' ? ClinicalStandards.mmolToMgDl(val) : val;
 
     setState(() {
       _currentCategory = ClinicalStandards.evaluateGlucose(mgDl, _selectedMealContext);
+      if (_hasAttemptedSubmit) {
+        final l10n = AppLocalizations.of(context);
+        if (l10n != null) {
+          final v = double.tryParse(_valueController.text.trim());
+          final err = ClinicalStandards.validateGlucose(value: v, unit: unit);
+          if (err != null) {
+            _validationErrorMessage = err.localizedMessage(l10n);
+            _valueHasError = true;
+          } else {
+            _validationErrorMessage = null;
+            _valueHasError = false;
+          }
+        }
+      }
     });
   }
 
@@ -116,18 +134,17 @@ class _QuickGlucoseModalState extends ConsumerState<QuickGlucoseModal> {
 
     final formattedDateStr = DateFormat('EEE, MMM d, yyyy • h:mm a').format(_selectedDateTime);
 
-    return Container(
-      padding: EdgeInsets.only(
-        top: 24,
-        left: 24,
-        right: 24,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-      ),
+    return Material(
+      color: Colors.white,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+      clipBehavior: Clip.antiAlias,
       child: SingleChildScrollView(
+        padding: EdgeInsets.only(
+          top: 24,
+          left: 24,
+          right: 24,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -294,9 +311,12 @@ class _QuickGlucoseModalState extends ConsumerState<QuickGlucoseModal> {
             Container(
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
               decoration: BoxDecoration(
-                color: AppColors.background,
+                color: _valueHasError ? Colors.red.shade50.withValues(alpha: 0.5) : AppColors.background,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                border: Border.all(
+                  color: _valueHasError ? Colors.red.shade400 : Colors.grey.withValues(alpha: 0.2),
+                  width: _valueHasError ? 1.5 : 1.0,
+                ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -306,10 +326,10 @@ class _QuickGlucoseModalState extends ConsumerState<QuickGlucoseModal> {
                       controller: _valueController,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 42,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.textDark,
+                        color: _valueHasError ? Colors.red.shade700 : AppColors.textDark,
                       ),
                       decoration: const InputDecoration(
                         isDense: true,
@@ -348,7 +368,7 @@ class _QuickGlucoseModalState extends ConsumerState<QuickGlucoseModal> {
                         _valueController.text =
                             ClinicalStandards.mmolToMgDl(currentVal).toStringAsFixed(0);
                       }
-                      _updateCategory();
+                      _onInputsChanged();
                     },
                   ),
                 ],
@@ -378,7 +398,7 @@ class _QuickGlucoseModalState extends ConsumerState<QuickGlucoseModal> {
                   onSelected: (val) {
                     if (val) {
                       setState(() => _selectedMealContext = ctx);
-                      _updateCategory();
+                      _onInputsChanged();
                     }
                   },
                 );
@@ -395,48 +415,127 @@ class _QuickGlucoseModalState extends ConsumerState<QuickGlucoseModal> {
                 prefixIcon: const Icon(Icons.medication),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
+
+            // Inline error message banner
+            if (_validationErrorMessage != null) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.red.shade300),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.error_outline, color: Colors.red.shade700, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        _validationErrorMessage!,
+                        style: TextStyle(
+                          color: Colors.red.shade700,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
 
             // Submit Button
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
-              onPressed: () {
-                if (member == null) return;
-                final inputVal = double.tryParse(_valueController.text) ?? 95.0;
-                final mgDl = unit == 'mmol/L'
-                    ? ClinicalStandards.mmolToMgDl(inputVal)
-                    : inputVal;
-
-                if (isEditing) {
-                  final updated = GlucoseReading(
-                    id: widget.initialReading!.id,
-                    memberId: widget.initialReading!.memberId,
-                    valueMgDl: mgDl,
-                    mealContext: _selectedMealContext,
-                    medicationNotes: _medsController.text.trim(),
-                    timestamp: _selectedDateTime,
-                  );
-                  ref.read(glucoseReadingsProvider.notifier).updateReading(updated);
-                  Navigator.pop(context);
-                } else {
-                  final reading = GlucoseReading(
-                    id: const Uuid().v4(),
-                    memberId: member.id,
-                    valueMgDl: mgDl,
-                    mealContext: _selectedMealContext,
-                    medicationNotes: _medsController.text.trim(),
-                    timestamp: _selectedDateTime,
-                  );
-
-                  ref.read(glucoseReadingsProvider.notifier).addReading(reading);
-                  Navigator.pop(context);
-                }
-              },
-              child: Text(isEditing ? l10n.updateGlucoseReading : l10n.saveGlucoseReading),
+              onPressed: _isSubmitting ? null : _handleSave,
+              child: _isSubmitting
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(isEditing ? l10n.updateGlucoseReading : l10n.saveGlucoseReading),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _handleSave() async {
+    if (_isSubmitting) return;
+
+    final member = ref.read(activeMemberProvider);
+    if (member == null) return;
+
+    final l10n = AppLocalizations.of(context)!;
+    final unit = ref.read(glucoseUnitProvider);
+    final inputVal = double.tryParse(_valueController.text.trim());
+
+    final err = ClinicalStandards.validateGlucose(
+      value: inputVal,
+      unit: unit,
+    );
+
+    _hasAttemptedSubmit = true;
+
+    if (err != null) {
+      setState(() {
+        _validationErrorMessage = err.localizedMessage(l10n);
+        _valueHasError = true;
+      });
+      return;
+    }
+
+    setState(() {
+      _validationErrorMessage = null;
+      _valueHasError = false;
+      _isSubmitting = true;
+    });
+
+    final mgDl = unit == 'mmol/L'
+        ? ClinicalStandards.mmolToMgDl(inputVal!)
+        : inputVal!;
+
+    final isEditing = widget.initialReading != null;
+
+    try {
+      if (isEditing) {
+        final updated = GlucoseReading(
+          id: widget.initialReading!.id,
+          memberId: widget.initialReading!.memberId,
+          valueMgDl: mgDl,
+          mealContext: _selectedMealContext,
+          medicationNotes: _medsController.text.trim(),
+          timestamp: _selectedDateTime,
+        );
+        await ref.read(glucoseReadingsProvider.notifier).updateReading(updated);
+      } else {
+        final reading = GlucoseReading(
+          id: const Uuid().v4(),
+          memberId: member.id,
+          valueMgDl: mgDl,
+          mealContext: _selectedMealContext,
+          medicationNotes: _medsController.text.trim(),
+          timestamp: _selectedDateTime,
+        );
+
+        await ref.read(glucoseReadingsProvider.notifier).addReading(reading);
+      }
+
+      if (!mounted) return;
+      Navigator.pop(context);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+        _validationErrorMessage = l10n.errorSaveFailed;
+      });
+    }
   }
 }

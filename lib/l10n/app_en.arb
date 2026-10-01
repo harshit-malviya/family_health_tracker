@@ -244,5 +244,12 @@
   "yesterday": "Yesterday",
   "now": "Now",
   "switchMember": "Switch Member",
-  "manageProfiles": "Manage Profiles"
+  "manageProfiles": "Manage Profiles",
+  "errorInvalidSystolic": "Systolic must be between 40 and 300 mmHg",
+  "errorInvalidDiastolic": "Diastolic must be between 30 and 200 mmHg",
+  "errorSystolicMustExceedDiastolic": "Systolic must be at least 10 mmHg higher than Diastolic",
+  "errorInvalidPulse": "Pulse must be between 30 and 250 bpm",
+  "errorInvalidGlucoseMgDl": "Glucose must be between 20 and 600 mg/dL",
+  "errorInvalidGlucoseMmol": "Glucose must be between 1.1 and 33.3 mmol/L",
+  "errorSaveFailed": "Failed to save reading. Please try again."
 }

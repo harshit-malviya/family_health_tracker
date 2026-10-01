@@ -76,7 +76,7 @@ The application has a clean visual design, strong domain foundations adhering to
 | **CRIT-03** | **P1** | Network / UI | `android/app/src/main/AndroidManifest.xml` | Release manifest missing `INTERNET` permission while `google_fonts` downloads at runtime | Release APK cannot download Google Fonts; broken styling and Hindi text failure | Bundle Google Fonts TTF files directly in `assets/fonts/` or add `INTERNET` permission |
 | **CRIT-04** | **P1** | Database | `lib/core/database/database_helper.dart` | SQLite `foreign_keys` PRAGMA is not enabled in `onConfigure` | Foreign key cascading constraints are disabled, risking orphaned records | Add `onConfigure: (db) async => await db.execute('PRAGMA foreign_keys = ON;')` |
 | **CRIT-05** | **P1** | Data Loss | `lib/ui/screens/history_screen.dart` | Dismissible swipe deletes clinical readings immediately without confirmation or undo | Users accidentally swiping lose medical readings permanently | Add `confirmDismiss` dialog or provide a functional `Undo` action in `SnackBar` |
-| **CRIT-06** | **P1** | Data Integrity | `lib/ui/widgets/quick_bp_modal.dart` & `quick_glucose_modal.dart` | No input range validation; allows `diastolic > systolic`; rapid double-taps insert duplicates | Corrupt/impossible medical logs recorded; duplicate entries generated | Validate physiological ranges, show error messages, and disable save button while saving |
+| **CRIT-06** | **P1** | Data Integrity | `lib/ui/widgets/quick_bp_modal.dart` & `quick_glucose_modal.dart` | No input range validation; allows `diastolic > systolic`; rapid double-taps insert duplicates | Corrupt/impossible medical logs recorded; duplicate entries generated | **RESOLVED**: Enforced physiological bounds (Sys: 40-300, Dia: 30-200, Sys > Dia, Pulse: 30-250, Glucose: 20-600 mg/dL / 1.1-33.3 mmol/L), dynamic inline error alerts, and async submission lock |
 | **CRIT-07** | **P2** | Performance | `lib/core/database/database_helper.dart` | No database indexes on `(memberId, timestamp)` | Full table scan on every query; sluggish history and chart queries over time | Add composite indexes: `CREATE INDEX idx_bp_member_time ON bp_readings(memberId, timestamp DESC);` |
 | **CRIT-08** | **P2** | UI / Layout | `lib/ui/screens/dashboard_screen.dart` | Unbounded `Text` inside unconstrained header `Row` | Right pixel overflow (yellow/black tape) on small screens or long member names | Wrap header title `Text` in `Expanded` or `Flexible` with `TextOverflow.ellipsis` |
 | **CRIT-09** | **P2** | State / Settings | `lib/providers/health_providers.dart` | `glucoseUnitProvider` is in-memory only and does not persist to disk | Setting `mmol/L` resets back to `mg/dL` on every app restart | Persist glucose unit in `SharedPreferences` exactly like `localeProvider` |
@@ -214,6 +214,7 @@ return Dismissible(
 
 ### [CRIT-06] Unbounded Clinical Input Validation & Race Conditions
 **Severity:** P1 — CRITICAL  
+**Status:** **RESOLVED**  
 **Category:** Clinical Integrity / Concurrency  
 **File:** [quick_bp_modal.dart](file:///g:/Code/health_tracker/lib/ui/widgets/quick_bp_modal.dart#L381-L420), [quick_glucose_modal.dart](file:///g:/Code/health_tracker/lib/ui/widgets/quick_glucose_modal.dart#L403-L434)  
 **Location:** Lines 381–420 (BP) & 403–434 (Glucose)  
@@ -232,11 +233,13 @@ final sys = int.tryParse(_sysController.text) ?? 120; // Silently invents 120
 final dia = int.tryParse(_diaController.text) ?? 80;  // Silently invents 80
 // No check: if (dia >= sys) error!
 ```
-**Recommended solution:** Add form validation:
-- Require non-empty inputs.
-- Validate: `systolic >= 40 && systolic <= 300`, `diastolic >= 30 && diastolic <= 200`, and `systolic > diastolic`.
-- Validate: `glucose >= 20 && glucose <= 600`.
-- Add an `_isSubmitting` flag to prevent duplicate submissions.  
+**Resolution Implemented:**
+- Domain boundaries added to `ClinicalStandards`: Systolic 40–300, Diastolic 30–200, Systolic > Diastolic (minimum pulse pressure 10 mmHg), Pulse 30–250, Glucose 20–600 mg/dL or 1.1–33.3 mmol/L.
+- Blank and malformed inputs rejected without default fallbacks.
+- Dynamic inline error highlighting on input cards and error message banners above Save button.
+- Async submission lock (`_isSubmitting`) preventing duplicate database inserts and replacing button text with loading spinner.
+- Full localization in both English and Hindi.
+- Verified with 12 comprehensive unit and widget tests in `test/clinical_validation_and_concurrency_test.dart`.
 **Risk of fixing:** Low.
 
 ---

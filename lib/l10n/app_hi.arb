@@ -176,5 +176,12 @@
   "yesterday": "कल",
   "now": "अभी",
   "switchMember": "सदस्य बदलें",
-  "manageProfiles": "प्रोफ़ाइल प्रबंधित करें"
+  "manageProfiles": "प्रोफ़ाइल प्रबंधित करें",
+  "errorInvalidSystolic": "सिस्टोलिक 40 और 300 mmHg के बीच होना चाहिए",
+  "errorInvalidDiastolic": "डायस्टोलिक 30 और 200 mmHg के बीच होना चाहिए",
+  "errorSystolicMustExceedDiastolic": "सिस्टोलिक डायस्टोलिक से कम से कम 10 mmHg अधिक होना चाहिए",
+  "errorInvalidPulse": "पल्स 30 और 250 bpm के बीच होनी चाहिए",
+  "errorInvalidGlucoseMgDl": "ग्लूकोज 20 और 600 mg/dL के बीच होना चाहिए",
+  "errorInvalidGlucoseMmol": "ग्लूकोज 1.1 और 33.3 mmol/L के बीच होना चाहिए",
+  "errorSaveFailed": "रीडिंग सहेजने में विफल। कृपया पुनः प्रयास करें।"
 }

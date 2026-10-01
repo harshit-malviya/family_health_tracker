@@ -1081,6 +1081,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Manage Profiles'**
   String get manageProfiles;
+
+  /// No description provided for @errorInvalidSystolic.
+  ///
+  /// In en, this message translates to:
+  /// **'Systolic must be between 40 and 300 mmHg'**
+  String get errorInvalidSystolic;
+
+  /// No description provided for @errorInvalidDiastolic.
+  ///
+  /// In en, this message translates to:
+  /// **'Diastolic must be between 30 and 200 mmHg'**
+  String get errorInvalidDiastolic;
+
+  /// No description provided for @errorSystolicMustExceedDiastolic.
+  ///
+  /// In en, this message translates to:
+  /// **'Systolic must be at least 10 mmHg higher than Diastolic'**
+  String get errorSystolicMustExceedDiastolic;
+
+  /// No description provided for @errorInvalidPulse.
+  ///
+  /// In en, this message translates to:
+  /// **'Pulse must be between 30 and 250 bpm'**
+  String get errorInvalidPulse;
+
+  /// No description provided for @errorInvalidGlucoseMgDl.
+  ///
+  /// In en, this message translates to:
+  /// **'Glucose must be between 20 and 600 mg/dL'**
+  String get errorInvalidGlucoseMgDl;
+
+  /// No description provided for @errorInvalidGlucoseMmol.
+  ///
+  /// In en, this message translates to:
+  /// **'Glucose must be between 1.1 and 33.3 mmol/L'**
+  String get errorInvalidGlucoseMmol;
+
+  /// No description provided for @errorSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save reading. Please try again.'**
+  String get errorSaveFailed;
 }
 
 class _AppLocalizationsDelegate
