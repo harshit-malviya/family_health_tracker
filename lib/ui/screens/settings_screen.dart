@@ -28,19 +28,62 @@ class SettingsScreen extends ConsumerWidget {
           // Language Selection Section
           _buildSectionHeader(l10n.languageSectionTitle),
           _buildCardSection(
-            child: ListTile(
-              leading: const Icon(Icons.language_rounded, color: AppColors.primary),
-              title: Text(l10n.languageSectionTitle, style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text(l10n.languageSubtitle),
-              trailing: SegmentedButton<String>(
-                segments: [
-                  ButtonSegment(value: 'en', label: Text(l10n.languageEnglish)),
-                  ButtonSegment(value: 'hi', label: Text(l10n.languageHindi)),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLight,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.language_rounded, color: AppColors.primary, size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l10n.languageSectionTitle,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              l10n.languageSubtitle,
+                              style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    child: SegmentedButton<String>(
+                      showSelectedIcon: false,
+                      segments: [
+                        ButtonSegment(
+                          value: 'en',
+                          label: Text(l10n.languageEnglish, style: const TextStyle(fontWeight: FontWeight.w600)),
+                        ),
+                        ButtonSegment(
+                          value: 'hi',
+                          label: Text(l10n.languageHindi, style: const TextStyle(fontWeight: FontWeight.w600)),
+                        ),
+                      ],
+                      selected: {locale.languageCode},
+                      onSelectionChanged: (set) {
+                        ref.read(localeProvider.notifier).setLocale(Locale(set.first));
+                      },
+                    ),
+                  ),
                 ],
-                selected: {locale.languageCode},
-                onSelectionChanged: (set) {
-                  ref.read(localeProvider.notifier).setLocale(Locale(set.first));
-                },
               ),
             ),
           ),
@@ -49,24 +92,63 @@ class SettingsScreen extends ConsumerWidget {
           // Units Section
           _buildSectionHeader(l10n.clinicalPreferences),
           _buildCardSection(
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.speed, color: AppColors.secondary),
-                  title: Text(l10n.glucoseUnitTitle, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text(unit == 'mg/dL' ? l10n.glucoseUnitUsIndia : l10n.glucoseUnitIntl),
-                  trailing: SegmentedButton<String>(
-                    segments: const [
-                      ButtonSegment(value: 'mg/dL', label: Text('mg/dL')),
-                      ButtonSegment(value: 'mmol/L', label: Text('mmol/L')),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.secondaryLight,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.speed, color: AppColors.secondary, size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l10n.glucoseUnitTitle,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              unit == 'mg/dL' ? l10n.glucoseUnitUsIndia : l10n.glucoseUnitIntl,
+                              style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
-                    selected: {unit},
-                    onSelectionChanged: (set) {
-                      ref.read(glucoseUnitProvider.notifier).setUnit(set.first);
-                    },
                   ),
-                ),
-              ],
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    child: SegmentedButton<String>(
+                      showSelectedIcon: false,
+                      segments: const [
+                        ButtonSegment(
+                          value: 'mg/dL',
+                          label: Text('mg/dL', style: TextStyle(fontWeight: FontWeight.w600)),
+                        ),
+                        ButtonSegment(
+                          value: 'mmol/L',
+                          label: Text('mmol/L', style: TextStyle(fontWeight: FontWeight.w600)),
+                        ),
+                      ],
+                      selected: {unit},
+                      onSelectionChanged: (set) {
+                        ref.read(glucoseUnitProvider.notifier).setUnit(set.first);
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 24),
