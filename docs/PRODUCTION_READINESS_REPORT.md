@@ -77,7 +77,7 @@ The application has a clean visual design, strong domain foundations adhering to
 | **CRIT-04** | **P1** | Database | `lib/core/database/database_helper.dart` | SQLite `foreign_keys` PRAGMA is not enabled in `onConfigure` | Foreign key cascading constraints are disabled, risking orphaned records | Add `onConfigure: (db) async => await db.execute('PRAGMA foreign_keys = ON;')` |
 | **CRIT-05** | **P1** | Data Loss | `lib/ui/screens/history_screen.dart` | Dismissible swipe deletes clinical readings immediately without confirmation or undo | Users accidentally swiping lose medical readings permanently | Add `confirmDismiss` dialog or provide a functional `Undo` action in `SnackBar` |
 | **CRIT-06** | **P1** | Data Integrity | `lib/ui/widgets/quick_bp_modal.dart` & `quick_glucose_modal.dart` | No input range validation; allows `diastolic > systolic`; rapid double-taps insert duplicates | Corrupt/impossible medical logs recorded; duplicate entries generated | **RESOLVED**: Enforced physiological bounds (Sys: 40-300, Dia: 30-200, Sys > Dia, Pulse: 30-250, Glucose: 20-600 mg/dL / 1.1-33.3 mmol/L), dynamic inline error alerts, and async submission lock |
-| **CRIT-07** | **P2** | Performance | `lib/core/database/database_helper.dart` | No database indexes on `(memberId, timestamp)` | Full table scan on every query; sluggish history and chart queries over time | Add composite indexes: `CREATE INDEX idx_bp_member_time ON bp_readings(memberId, timestamp DESC);` |
+| **CRIT-07** | **P2** | Performance | `lib/core/database/database_helper.dart` | No database indexes on `(memberId, timestamp)` | Full table scan on every query; sluggish history and chart queries over time | **RESOLVED**: Bumped DB version to 4, added composite indexes `(memberId, timestamp DESC)` in `_createDB` and `_upgradeDB`, verified with EXPLAIN QUERY PLAN |
 | **CRIT-08** | **P2** | UI / Layout | `lib/ui/screens/dashboard_screen.dart` | Unbounded `Text` inside unconstrained header `Row` | Right pixel overflow (yellow/black tape) on small screens or long member names | Wrap header title `Text` in `Expanded` or `Flexible` with `TextOverflow.ellipsis` |
 | **CRIT-09** | **P2** | State / Settings | `lib/providers/health_providers.dart` | `glucoseUnitProvider` is in-memory only and does not persist to disk | Setting `mmol/L` resets back to `mg/dL` on every app restart | Persist glucose unit in `SharedPreferences` exactly like `localeProvider` |
 | **CRIT-10** | **P2** | Lifecycle | `lib/ui/screens/doctor_report_screen.dart` | Missing `catch` block on direct print; `setState` called after unmount | Flutter runtime exceptions if user navigates back while PDF renders | Wrap in complete `try/catch` and add `if (!mounted) return;` before `setState` |
@@ -246,16 +246,16 @@ final dia = int.tryParse(_diaController.text) ?? 80;  // Silently invents 80
 
 ### [CRIT-07] Missing Database Indexes on Query Columns
 **Severity:** P2 — HIGH  
+**Status:** **RESOLVED**  
 **Category:** Database Performance  
 **File:** [database_helper.dart](file:///g:/Code/health_tracker/lib/core/database/database_helper.dart#L44-L88)  
 **Location:** Lines 44–88  
 **Problem:** The `bp_readings` and `glucose_readings` tables have no indexes on `memberId` or `timestamp`. Every dashboard load, history query, stats provider, and doctor report executes `WHERE memberId = ? ORDER BY timestamp DESC`.  
 **Why it matters:** As active users log 3–5 readings per day over several months (hundreds or thousands of rows per family member), SQLite must execute unindexed full-table sequential scans and in-memory temporary sorts. This causes frame drops and sluggish query response times.  
-**Recommended solution:** Add composite indexes in database creation and a migration step:
-```sql
-CREATE INDEX idx_bp_member_time ON bp_readings(memberId, timestamp DESC);
-CREATE INDEX idx_glucose_member_time ON glucose_readings(memberId, timestamp DESC);
-```
+**Resolution Implemented:**
+- Bumped database version to `4` in `DatabaseHelper._initDB`.
+- Added composite indexes `idx_bp_member_time` on `bp_readings(memberId, timestamp DESC)` and `idx_glucose_member_time` on `glucose_readings(memberId, timestamp DESC)` in both `_createDB` and the `_upgradeDB` version 4 migration block.
+- Verified fresh creation, v3-to-v4 migration integrity, and `EXPLAIN QUERY PLAN` verifying index search usage in `test/database_indexes_test.dart`.
 **Risk of fixing:** Low.
 
 ---

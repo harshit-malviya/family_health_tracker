@@ -23,7 +23,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON;');
       },
@@ -41,6 +41,14 @@ class DatabaseHelper {
       await db.delete('family_members', where: "id IN ('member_dad', 'member_mom', 'member_self')");
       await db.delete('bp_readings', where: "memberId IN ('member_dad', 'member_mom', 'member_self')");
       await db.delete('glucose_readings', where: "memberId IN ('member_dad', 'member_mom', 'member_self')");
+    }
+    if (oldVersion < 4) {
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_bp_member_time ON bp_readings(memberId, timestamp DESC);',
+      );
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_glucose_member_time ON glucose_readings(memberId, timestamp DESC);',
+      );
     }
   }
 
@@ -87,6 +95,14 @@ class DatabaseHelper {
         FOREIGN KEY (memberId) REFERENCES family_members (id) ON DELETE CASCADE
       )
     ''');
+
+    // Composite indexes for fast filtered lookups and sorted history
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_bp_member_time ON bp_readings(memberId, timestamp DESC);',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_glucose_member_time ON glucose_readings(memberId, timestamp DESC);',
+    );
     // First-time users create their own family members via the Onboarding flow.
   }
 
