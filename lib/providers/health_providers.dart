@@ -56,6 +56,28 @@ final familyMembersProvider =
     AsyncNotifierProvider<FamilyMembersNotifier, List<FamilyMember>>(
         FamilyMembersNotifier.new);
 
+// Tracks whether the user has finished first-time family member onboarding
+class OnboardingCompletedNotifier extends Notifier<bool> {
+  bool _initialized = false;
+  bool _initialHadMembers = false;
+
+  @override
+  bool build() {
+    final members = ref.watch(familyMembersProvider).asData?.value;
+    if (!_initialized && members != null) {
+      _initialized = true;
+      _initialHadMembers = members.isNotEmpty;
+    }
+    return _initialHadMembers;
+  }
+
+  void complete() => state = true;
+}
+
+final onboardingCompletedProvider =
+    NotifierProvider<OnboardingCompletedNotifier, bool>(
+        OnboardingCompletedNotifier.new);
+
 // Selected Family Member ID Notifier
 class SelectedMemberIdNotifier extends Notifier<String?> {
   @override

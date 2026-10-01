@@ -24,7 +24,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -33,6 +33,12 @@ class DatabaseHelper {
   Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
       await db.execute('ALTER TABLE family_members ADD COLUMN dateOfBirth TEXT;');
+    }
+    if (oldVersion < 3) {
+      // Clean mock seed data from earlier testing versions
+      await db.delete('family_members', where: "id IN ('member_dad', 'member_mom', 'member_self')");
+      await db.delete('bp_readings', where: "memberId IN ('member_dad', 'member_mom', 'member_self')");
+      await db.delete('glucose_readings', where: "memberId IN ('member_dad', 'member_mom', 'member_self')");
     }
   }
 
@@ -79,43 +85,7 @@ class DatabaseHelper {
         FOREIGN KEY (memberId) REFERENCES family_members (id) ON DELETE CASCADE
       )
     ''');
-
-    // Pre-populate with default family profiles so the user can immediately start logging
-    await _seedInitialMembers(db);
-  }
-
-  Future<void> _seedInitialMembers(Database db) async {
-    final now = DateTime.now();
-    final initialMembers = [
-      FamilyMember(
-        id: 'member_dad',
-        name: 'Dad',
-        relation: 'Father',
-        dateOfBirth: DateTime(now.year - 62, 5, 15),
-        colorValue: AppColors.memberPalette[0].value,
-        avatarEmoji: '👨',
-      ),
-      FamilyMember(
-        id: 'member_mom',
-        name: 'Mom',
-        relation: 'Mother',
-        dateOfBirth: DateTime(now.year - 58, 8, 20),
-        colorValue: AppColors.memberPalette[1].value,
-        avatarEmoji: '👩',
-      ),
-      FamilyMember(
-        id: 'member_self',
-        name: 'Self',
-        relation: 'Self',
-        dateOfBirth: DateTime(now.year - 32, 11, 4),
-        colorValue: AppColors.memberPalette[4].value,
-        avatarEmoji: '🧑',
-      ),
-    ];
-
-    for (final member in initialMembers) {
-      await db.insert('family_members', member.toMap());
-    }
+    // First-time users create their own family members via the Onboarding flow.
   }
 
   // --- Family Member Operations ---
