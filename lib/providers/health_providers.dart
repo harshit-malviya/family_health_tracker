@@ -1,9 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../repositories/health_repository.dart';
 import '../models/family_member.dart';
 import '../models/bp_reading.dart';
 import '../models/glucose_reading.dart';
 import '../core/constants/clinical_standards.dart';
+
+// SharedPreferences Provider (injected at startup)
+final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
+  throw UnimplementedError('sharedPreferencesProvider must be overridden with preloaded instance');
+});
 
 // Health Repository Provider
 final healthRepositoryProvider = Provider<HealthRepository>((ref) {
@@ -56,22 +62,38 @@ final familyMembersProvider =
     AsyncNotifierProvider<FamilyMembersNotifier, List<FamilyMember>>(
         FamilyMembersNotifier.new);
 
+const String kOnboardingCompletedPrefKey = 'has_completed_onboarding';
+
 // Tracks whether the user has finished first-time family member onboarding
 class OnboardingCompletedNotifier extends Notifier<bool> {
-  bool _initialized = false;
-  bool _initialHadMembers = false;
-
   @override
   bool build() {
-    final members = ref.watch(familyMembersProvider).asData?.value;
-    if (!_initialized && members != null) {
-      _initialized = true;
-      _initialHadMembers = members.isNotEmpty;
+    final prefs = ref.watch(sharedPreferencesProvider);
+    final savedValue = prefs.getBool(kOnboardingCompletedPrefKey);
+    if (savedValue != null) {
+      return savedValue;
     }
-    return _initialHadMembers;
+
+    // Fallback/migration for existing users who already created profiles:
+    // Read members once without registering a reactive watch
+    final existingMembers = ref.read(familyMembersProvider).asData?.value;
+    if (existingMembers != null && existingMembers.isNotEmpty) {
+      prefs.setBool(kOnboardingCompletedPrefKey, true);
+      return true;
+    }
+
+    return false;
   }
 
-  void complete() => state = true;
+  void complete() {
+    state = true;
+    ref.read(sharedPreferencesProvider).setBool(kOnboardingCompletedPrefKey, true);
+  }
+
+  void reset() {
+    state = false;
+    ref.read(sharedPreferencesProvider).setBool(kOnboardingCompletedPrefKey, false);
+  }
 }
 
 final onboardingCompletedProvider =

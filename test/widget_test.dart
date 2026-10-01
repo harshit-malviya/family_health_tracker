@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:health_tracker/l10n/app_localizations.dart';
 import 'package:health_tracker/ui/widgets/metric_summary_card.dart';
 import 'package:health_tracker/ui/screens/onboarding_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:health_tracker/providers/health_providers.dart';
 import 'package:health_tracker/core/constants/app_colors.dart';
 
 void main() {
@@ -41,9 +43,15 @@ void main() {
   });
 
   testWidgets('OnboardingScreen renders initial first profile form with disabled continue button', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+
     await tester.pumpWidget(
-      const ProviderScope(
-        child: MaterialApp(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+        child: const MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           locale: Locale('en'),
