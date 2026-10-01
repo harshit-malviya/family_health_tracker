@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Production Release Guide | Family Health Tracker</title>
+  <meta name="description" content="Step-by-step production release and deployment guide for Family Health Tracker Android APK distribution via GitHub Releases." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-primary: #0a0f1d;
+      --bg-surface: #111827;
+      --bg-surface-elevated: #1f293d;
+      --bg-card: rgba(17, 24, 39, 0.75);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(16, 185, 129, 0.35);
+      
+      --accent-emerald: #10b981;
+      --accent-teal: #06b6d4;
+      --accent-blue: #3b82f6;
+      --accent-purple: #8b5cf6;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-subtle: #64748b;
+      
+      --glow-emerald: rgba(16, 185, 129, 0.18);
+      --glow-teal: rgba(6, 182, 212, 0.18);
+      
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+      
+      --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      line-height: 1.6;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 15% 10%, rgba(16, 185, 129, 0.12) 0%, transparent 45%),
+        radial-gradient(circle at 85% 65%, rgba(6, 182, 212, 0.10) 0%, transparent 50%),
+        radial-gradient(circle at 50% 90%, rgba(139, 92, 246, 0.08) 0%, transparent 40%);
+      background-attachment: fixed;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-primary);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--bg-surface-elevated);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-subtle);
+    }
+
+    /* Container & Layout */
+    .app-layout {
+      display: flex;
+      min-height: 100vh;
+      position: relative;
+    }
+
+    /* Sidebar Navigation */
+    .sidebar {
+      width: 300px;
+      background: rgba(11, 16, 29, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-right: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 24px 18px;
+      z-index: 100;
+    }
+
+    .brand-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 20px;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, var(--accent-emerald), var(--accent-teal));
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 20px var(--glow-emerald);
+      font-size: 22px;
+    }
+
+    .brand-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-subtitle {
+      font-size: 0.75rem;
+      color: var(--accent-teal);
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+    }
+
+    /* Progress Widget in Sidebar */
+    .progress-widget {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      margin-bottom: 20px;
+    }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .progress-label {
+      color: var(--text-muted);
+    }
+
+    .progress-value {
+      color: var(--accent-emerald);
+      font-family: var(--font-mono);
+    }
+
+    .progress-bar-bg {
+      height: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent-emerald), var(--accent-teal));
+      border-radius: 4px;
+      transition: width 0.4s ease;
+    }
+
+    /* Nav Links */
+    .nav-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      overflow-y: auto;
+      flex: 1;
+      padding-right: 4px;
+    }
+
+    .nav-item a {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 500;
+      border-radius: var(--radius-sm);
+      transition: all 0.2s ease;
+      border: 1px solid transparent;
+    }
+
+    .nav-item a:hover {
+      color: var(--text-main);
+      background: var(--bg-surface-elevated);
+      border-color: var(--border-color);
+    }
+
+    .nav-item a.active {
+      color: #fff;
+      background: rgba(16, 185, 129, 0.12);
+      border-color: var(--border-hover);
+      font-weight: 600;
+    }
+
+    .nav-badge {
+      font-size: 0.7rem;
+      font-family: var(--font-mono);
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      margin-left: auto;
+    }
+
+    /* Main Content Area */
+    .main-content {
+      flex: 1;
+      max-width: 1000px;
+      padding: 48px 48px 100px;
+      margin: 0 auto;
+    }
+
+    /* Header Banner */
+    .hero-banner {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(6, 182, 212, 0.08) 100%);
+      border: 1px solid var(--border-hover);
+      border-radius: var(--radius-xl);
+      padding: 36px 40px;
+      margin-bottom: 40px;
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(10px);
+    }
+
+    .hero-badge-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+    }
+
+    .badge-production {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: rgba(16, 185, 129, 0.4);
+      color: #34d399;
+    }
+
+    .badge-platform {
+      background: rgba(6, 182, 212, 0.15);
+      border-color: rgba(6, 182, 212, 0.4);
+      color: #38bdf8;
+    }
+
+    .badge-offline {
+      background: rgba(139, 92, 246, 0.15);
+      border-color: rgba(139, 92, 246, 0.4);
+      color: #c084fc;
+    }
+
+    .hero-title {
+      font-size: 2.25rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.03em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero-desc {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      max-width: 700px;
+    }
+
+    /* Section Headers */
+    .section-container {
+      margin-bottom: 56px;
+      scroll-margin-top: 40px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 24px;
+    }
+
+    .section-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .section-number {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--accent-emerald);
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid var(--border-hover);
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+    }
+
+    .section-title {
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.02em;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin-bottom: 20px;
+      backdrop-filter: blur(10px);
+      transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+
+    .card:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    /* Checkable Tasks */
+    .task-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 16px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      margin-bottom: 12px;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s ease;
+    }
+
+    .task-item:hover {
+      border-color: var(--border-hover);
+      background: var(--bg-surface-elevated);
+    }
+
+    .task-item.checked {
+      border-color: rgba(16, 185, 129, 0.3);
+      background: rgba(16, 185, 129, 0.05);
+    }
+
+    .task-checkbox {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      border: 2px solid var(--text-subtle);
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 2px;
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+    }
+
+    .task-item.checked .task-checkbox {
+      background: var(--accent-emerald);
+      border-color: var(--accent-emerald);
+    }
+
+    .task-checkbox svg {
+      display: none;
+      width: 14px;
+      height: 14px;
+      stroke: #fff;
+      stroke-width: 3;
+    }
+
+    .task-item.checked .task-checkbox svg {
+      display: block;
+    }
+
+    .task-body {
+      flex: 1;
+    }
+
+    .task-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .task-item.checked .task-title {
+      text-decoration: line-through;
+      color: var(--text-muted);
+    }
+
+    .task-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Code Blocks & Copy */
+    .code-container {
+      position: relative;
+      background: #0d121f;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      margin: 14px 0;
+      overflow: hidden;
+    }
+
+    .code-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border-bottom: 1px solid var(--border-color);
+      font-size: 0.75rem;
+      color: var(--text-subtle);
+      font-family: var(--font-mono);
+    }
+
+    .copy-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-family: var(--font-sans);
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .copy-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+    }
+
+    .copy-btn.copied {
+      background: rgba(16, 185, 129, 0.2);
+      border-color: var(--accent-emerald);
+      color: var(--accent-emerald);
+    }
+
+    pre code {
+      display: block;
+      padding: 16px;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: #e2e8f0;
+      overflow-x: auto;
+      line-height: 1.6;
+    }
+
+    .code-comment { color: #64748b; }
+    .code-cmd { color: #38bdf8; font-weight: 600; }
+    .code-flag { color: #f59e0b; }
+    .code-val { color: #34d399; }
+    .code-key { color: #c084fc; }
+
+    /* Callout Alerts */
+    .callout {
+      display: flex;
+      gap: 14px;
+      padding: 16px 20px;
+      border-radius: var(--radius-md);
+      margin: 16px 0;
+      border: 1px solid transparent;
+      font-size: 0.88rem;
+    }
+
+    .callout-icon {
+      font-size: 1.25rem;
+      flex-shrink: 0;
+    }
+
+    .callout-warning {
+      background: rgba(245, 158, 11, 0.08);
+      border-color: rgba(245, 158, 11, 0.3);
+      color: #fde68a;
+    }
+    .callout-warning strong { color: #f59e0b; }
+
+    .callout-danger {
+      background: rgba(244, 63, 94, 0.08);
+      border-color: rgba(244, 63, 94, 0.3);
+      color: #fecdd3;
+    }
+    .callout-danger strong { color: #f43f5e; }
+
+    .callout-info {
+      background: rgba(6, 182, 212, 0.08);
+      border-color: rgba(6, 182, 212, 0.3);
+      color: #bae6fd;
+    }
+    .callout-info strong { color: #06b6d4; }
+
+    /* Table */
+    .specs-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      margin: 16px 0;
+    }
+
+    .specs-table th {
+      text-align: left;
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .specs-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      color: var(--text-main);
+    }
+
+    .specs-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Release notes template */
+    .release-template-box {
+      background: #090d16;
+      border: 1px dashed rgba(255, 255, 255, 0.15);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      white-space: pre-wrap;
+      line-height: 1.6;
+    }
+
+    /* Footer */
+    .page-footer {
+      border-top: 1px solid var(--border-color);
+      padding-top: 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      color: var(--text-subtle);
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .app-layout { flex-direction: column; }
+      .sidebar { width: 100%; height: auto; position: static; border-right: none; border-bottom: 1px solid var(--border-color); }
+      .main-content { padding: 24px 20px 60px; }
+      .hero-title { font-size: 1.75rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="brand-header">
+        <div class="brand-icon">🩺</div>
+        <div>
+          <div class="brand-title">Health Tracker</div>
+          <div class="brand-subtitle">Production Playbook</div>
+        </div>
+      </div>
+
+      <!-- Realtime Interactive Progress Tracker -->
+      <div class="progress-widget" id="progressWidget">
+        <div class="progress-header">
+          <span class="progress-label">Release Readiness</span>
+          <span class="progress-value" id="progressPercentage">0%</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="progressBar"></div>
+        </div>
+        <div style="font-size: 0.72rem; color: var(--text-subtle); margin-top: 6px; text-align: right;" id="tasksCompletedCount">
+          0 of 12 tasks completed
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <ul class="nav-list">
+        <li class="nav-item"><a href="#overview" class="active"><span>📌 Overview & Baseline</span></a></li>
+        <li class="nav-item"><a href="#linter"><span>🧹 Linter & Code Cleanup</span> <span class="nav-badge">0/2</span></a></li>
+        <li class="nav-item"><a href="#keystore"><span>🔐 Keystore & Signing</span> <span class="nav-badge">0/3</span></a></li>
+        <li class="nav-item"><a href="#proguard"><span>⚙️ ProGuard & R8 Rules</span> <span class="nav-badge">0/2</span></a></li>
+        <li class="nav-item"><a href="#build"><span>🚀 Building Release APK</span> <span class="nav-badge">0/2</span></a></li>
+        <li class="nav-item"><a href="#verification"><span>🔍 On-Device Verification</span> <span class="nav-badge">0/2</span></a></li>
+        <li class="nav-item"><a href="#github-release"><span>📦 GitHub Publishing</span> <span class="nav-badge">0/1</span></a></li>
+        <li class="nav-item"><a href="#future-updates"><span>🛡️ Future Updates & DB</span></a></li>
+      </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+      <!-- Hero Header -->
+      <section class="hero-banner" id="overview">
+        <div class="hero-badge-row">
+          <span class="status-badge badge-production">🎯 Production Target: v1.0.0</span>
+          <span class="status-badge badge-platform">🤖 Android Direct APK</span>
+          <span class="status-badge badge-offline">🔒 100% Offline & Private</span>
+        </div>
+        <h1 class="hero-title">Family Health Tracker Production Release Guide</h1>
+        <p class="hero-desc">
+          Official, production-grade deployment roadmap for packaging, signing, and releasing your Flutter application directly via GitHub Releases.
+        </p>
+      </section>
+
+      <!-- App Specifications -->
+      <div class="card">
+        <h3 style="color:#fff; font-size:1.1rem; margin-bottom:12px;">App Release Metadata</h3>
+        <table class="specs-table">
+          <thead>
+            <tr>
+              <th>Property</th>
+              <th>Configured Value</th>
+              <th>Location</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Application ID</strong></td>
+              <td><code>com.toofanalpha.health_tracker</code></td>
+              <td><code>android/app/build.gradle.kts</code></td>
+            </tr>
+            <tr>
+              <td><strong>App Display Name</strong></td>
+              <td>Family Health Tracker</td>
+              <td><code>android/app/src/main/AndroidManifest.xml</code></td>
+            </tr>
+            <tr>
+              <td><strong>Release Version</strong></td>
+              <td><code>1.0.0+1</code> (SemVer + Build)</td>
+              <td><code>pubspec.yaml</code></td>
+            </tr>
+            <tr>
+              <td><strong>Min / Target SDK</strong></td>
+              <td>Min: 21 (Android 5.0) | Target: 34+</td>
+              <td><code>android/app/build.gradle.kts</code></td>
+            </tr>
+            <tr>
+              <td><strong>Telemetry & Analytics</strong></td>
+              <td>Zero external tracking (Privacy-First)</td>
+              <td>Local SQLite Storage</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Phase 1: Linter & Code Health -->
+      <section class="section-container" id="linter">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <span class="section-number">PHASE 1</span>
+            <h2 class="section-title">Code Health & Quality Assurance</h2>
+          </div>
+        </div>
+
+        <div class="task-item" onclick="toggleTask(this, 'task-lint-clean')">
+          <div class="task-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <div class="task-body">
+            <div class="task-title">Resolve 39 Code Analyzer & Deprecation Warnings</div>
+            <div class="task-desc">
+              Eliminate unused variables (<code>analytics_screen.dart</code>, <code>settings_screen.dart</code>), unused imports, guard async context transitions, and replace deprecated <code>withOpacity</code> with <code>withValues(alpha: ...)</code>.
+            </div>
+          </div>
+        </div>
+
+        <div class="code-container">
+          <div class="code-header">
+            <span>POWERSHELL / TERMINAL</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><code><span class="code-cmd">flutter</span> analyze</code></pre>
+        </div>
+
+        <div class="task-item" onclick="toggleTask(this, 'task-test-pass')">
+          <div class="task-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <div class="task-body">
+            <div class="task-title">Verify 100% Pass on Clinical Unit Tests</div>
+            <div class="task-desc">
+              Run all 15 automated test suites (AHA/ACC BP category calculations, ADA glucose evaluations, SQLite serialization, and JSON backup payload schemas).
+            </div>
+          </div>
+        </div>
+
+        <div class="code-container">
+          <div class="code-header">
+            <span>POWERSHELL / TERMINAL</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><code><span class="code-cmd">flutter</span> test</code></pre>
+        </div>
+      </section>
+
+      <!-- Phase 2: Keystore & Signing -->
+      <section class="section-container" id="keystore">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <span class="section-number">PHASE 2</span>
+            <h2 class="section-title">Cryptographic App Signing & Keystore</h2>
+          </div>
+        </div>
+
+        <div class="callout callout-danger">
+          <div class="callout-icon">🚨</div>
+          <div>
+            <strong>CRITICAL DATA INTEGRITY WARNING:</strong><br />
+            For direct APK distribution, Android enforces that app updates MUST be signed with the <em>exact same keystore</em>. If you lose this keystore or re-generate it later with different keys, your users will receive an <code>App not installed as package appears to be corrupt / signature mismatch</code> error and will have to uninstall their app—<strong>permanently losing their local health database!</strong> Back up your keystore securely.
+          </div>
+        </div>
+
+        <div class="task-item" onclick="toggleTask(this, 'task-gen-keystore')">
+          <div class="task-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <div class="task-body">
+            <div class="task-title">Generate Production Release Keystore</div>
+            <div class="task-desc">
+              Execute Java's <code>keytool</code> utility to create a 2048-bit RSA upload keystore with a 10,000-day validity in the <code>android/app</code> directory.
+            </div>
+          </div>
+        </div>
+
+        <div class="code-container">
+          <div class="code-header">
+            <span>POWERSHELL (RUN FROM PROJECT ROOT)</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><code><span class="code-cmd">keytool</span> -genkey -v -keystore android/app/upload-keystore.jks <span class="code-flag">-storetype</span> JKS <span class="code-flag">-keyalg</span> RSA <span class="code-flag">-keysize</span> 2048 <span class="code-flag">-validity</span> 10000 <span class="code-flag">-alias</span> upload</code></pre>
+        </div>
+
+        <div class="task-item" onclick="toggleTask(this, 'task-key-properties')">
+          <div class="task-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <div class="task-body">
+            <div class="task-title">Create `android/key.properties` Template</div>
+            <div class="task-desc">
+              Create the configuration file in <code>android/key.properties</code> holding passwords and aliases (never committed to git).
+            </div>
+          </div>
+        </div>
+
+        <div class="code-container">
+          <div class="code-header">
+            <span>FILE: android/key.properties</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><code><span class="code-key">storePassword</span>=<span class="code-val">&lt;your-keystore-password&gt;</span>
+<span class="code-key">keyPassword</span>=<span class="code-val">&lt;your-key-password&gt;</span>
+<span class="code-key">keyAlias</span>=<span class="code-val">upload</span>
+<span class="code-key">storeFile</span>=<span class="code-val">upload-keystore.jks</span></code></pre>
+        </div>
+
+        <div class="task-item" onclick="toggleTask(this, 'task-git-ignore')">
+          <div class="task-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <div class="task-body">
+            <div class="task-title">Verify `.gitignore` Exclusions</div>
+            <div class="task-desc">
+              Ensure <code>key.properties</code>, <code>*.jks</code>, and <code>*.keystore</code> are strictly ignored by Git so private release keys are never leaked to public GitHub repositories.
+            </div>
+          </div>
+        </div>
+
+        <div class="code-container">
+          <div class="code-header">
+            <span>SNIPPET IN: .gitignore</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><code><span class="code-comment"># Release Keystore & Secrets</span>
+key.properties
+**/android/key.properties
+*.jks
+*.keystore</code></pre>
+        </div>
+      </section>
+
+      <!-- Phase 3: ProGuard & R8 Rules -->
+      <section class="section-container" id="proguard">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <span class="section-number">PHASE 3</span>
+            <h2 class="section-title">ProGuard Rules & R8 Shrinking</h2>
+          </div>
+        </div>
+
+        <div class="task-item" onclick="toggleTask(this, 'task-proguard-rules')">
+          <div class="task-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <div class="task-body">
+            <div class="task-title">Create ProGuard Rules (`android/app/proguard-rules.pro`)</div>
+            <div class="task-desc">
+              Protect native Android interfaces used by Sqflite, File Picker, Printing, and Share Plus from being stripped during R8 optimization.
+            </div>
+          </div>
+        </div>
+
+        <div class="code-container">
+          <div class="code-header">
+            <span>FILE: android/app/proguard-rules.pro</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><code><span class="code-comment"># Flutter Wrapper</span>
+-keep class io.flutter.app.** { *; }
+-keep class io.flutter.plugin.**  { *; }
+-keep class io.flutter.util.**  { *; }
+-keep class io.flutter.view.**  { *; }
+-keep class io.flutter.**  { *; }
+-keep class io.flutter.plugins.**  { *; }
+
+<span class="code-comment"># SQLite native hooks</span>
+-keep class com.tekartik.sqflite.** { *; }
+
+<span class="code-comment"># PDF & Printing native interfaces</span>
+-keep class net.nfet.flutter.printing.** { *; }
+
+<span class="code-comment"># File Picker & Share Plus</span>
+-keep class com.mr.flutter.plugin.filepicker.** { *; }
+-keep class dev.fluttercommunity.plus.share.** { *; }
+
+<span class="code-comment"># Keep generic attributes</span>
+-dontwarn javax.annotation.**
+-keepattributes *Annotation*,EnclosingMethod,Signature</code></pre>
+        </div>
+
+        <div class="task-item" onclick="toggleTask(this, 'task-gradle-release-config')">
+          <div class="task-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <div class="task-body">
+            <div class="task-title">Configure Gradle Release Signing & Shrinking</div>
+            <div class="task-desc">
+              Update <code>android/app/build.gradle.kts</code> to automatically load keystore credentials and enable release shrinking with Proguard rules.
+            </div>
+          </div>
+        </div>
+
+        <div class="code-container">
+          <div class="code-header">
+            <span>SNIPPET FOR: android/app/build.gradle.kts</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><code><span class="code-cmd">import</span> java.io.FileInputStream
+<span class="code-cmd">import</span> java.util.Properties
+
+<span class="code-key">val</span> keystoreProperties = Properties()
+<span class="code-key">val</span> keystorePropertiesFile = rootProject.file(<span class="code-val">"key.properties"</span>)
+<span class="code-key">if</span> (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+}
+
+android {
+    ...
+    signingConfigs {
+        create(<span class="code-val">"release"</span>) {
+            keyAlias = keystoreProperties[<span class="code-val">"keyAlias"</span>] <span class="code-cmd">as</span> String?
+            keyPassword = keystoreProperties[<span class="code-val">"keyPassword"</span>] <span class="code-cmd">as</span> String?
+            storeFile = keystoreProperties[<span class="code-val">"storeFile"</span>]?.let { file(it) }
+            storePassword = keystoreProperties[<span class="code-val">"storePassword"</span>] <span class="code-cmd">as</span> String?
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig = signingConfigs.getByName(<span class="code-val">"release"</span>)
+            isMinifyEnabled = <span class="code-val">true</span>
+            isShrinkResources = <span class="code-val">true</span>
+            proguardFiles(
+                getDefaultProguardFile(<span class="code-val">"proguard-android-optimize.txt"</span>),
+                <span class="code-val">"proguard-rules.pro"</span>
+            )
+        }
+    }
+}</code></pre>
+        </div>
+      </section>
+
+      <!-- Phase 4: Building Release APK -->
+      <section class="section-container" id="build">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <span class="section-number">PHASE 4</span>
+            <h2 class="section-title">Compiling the Production Release APK</h2>
+          </div>
+        </div>
+
+        <div class="task-item" onclick="toggleTask(this, 'task-build-clean')">
+          <div class="task-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <div class="task-body">
+            <div class="task-title">Perform Fresh Build Cache Clean</div>
+            <div class="task-desc">
+              Clean old intermediate debug binaries and retrieve clean dependencies.
+            </div>
+          </div>
+        </div>
+
+        <div class="code-container">
+          <div class="code-header">
+            <span>POWERSHELL / TERMINAL</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><code><span class="code-cmd">flutter</span> clean
+<span class="code-cmd">flutter</span> pub get</code></pre>
+        </div>
+
+        <div class="task-item" onclick="toggleTask(this, 'task-build-apk')">
+          <div class="task-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <div class="task-body">
+            <div class="task-title">Compile Obfuscated Universal Release APK</div>
+            <div class="task-desc">
+              Builds a universal APK compatible with all ARM64, ARMv7, and x86_64 devices, while obfuscating Dart logic and stripping debug symbols into a local folder.
+            </div>
+          </div>
+        </div>
+
+        <div class="code-container">
+          <div class="code-header">
+            <span>PRODUCTION COMPILATION COMMAND</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><code><span class="code-cmd">flutter</span> build apk <span class="code-flag">--release</span> <span class="code-flag">--obfuscate</span> <span class="code-flag">--split-debug-info</span>=build/app/outputs/symbols</code></pre>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">💡</div>
+          <div>
+            <strong>Output Location:</strong> Your signed release APK will be located at:<br />
+            <code>build\app\outputs\flutter-apk\app-release.apk</code><br />
+            You can rename this file to <code>FamilyHealthTracker-v1.0.0.apk</code> before distributing.
+          </div>
+        </div>
+      </section>
+
+      <!-- Phase 5: Testing & Sideload Verification -->
+      <section class="section-container" id="verification">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <span class="section-number">PHASE 5</span>
+            <h2 class="section-title">On-Device QA Verification</h2>
+          </div>
+        </div>
+
+        <div class="task-item" onclick="toggleTask(this, 'task-adb-install')">
+          <div class="task-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <div class="task-body">
+            <div class="task-title">Install & Test Release APK on Physical Device</div>
+            <div class="task-desc">
+              Sideload the compiled release binary directly to your connected device to verify release signing, icons, and speed.
+            </div>
+          </div>
+        </div>
+
+        <div class="code-container">
+          <div class="code-header">
+            <span>POWERSHELL / ADB</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><code><span class="code-cmd">adb</span> -d install -r build/app/outputs/flutter-apk/app-release.apk</code></pre>
+        </div>
+
+        <div class="task-item" onclick="toggleTask(this, 'task-qa-smoke')">
+          <div class="task-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <div class="task-body">
+            <div class="task-title">Run Critical Smoke Tests in Release Mode</div>
+            <div class="task-desc">
+              1. Add a Family Member with custom color & emoji.<br />
+              2. Log Blood Pressure & Glucose readings with past dates.<br />
+              3. Generate Doctor PDF report and trigger printing/share sheet.<br />
+              4. Export JSON Backup file and verify restore works flawlessly.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Phase 6: Publishing to GitHub Releases -->
+      <section class="section-container" id="github-release">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <span class="section-number">PHASE 6</span>
+            <h2 class="section-title">Publishing on GitHub Releases</h2>
+          </div>
+        </div>
+
+        <div class="task-item" onclick="toggleTask(this, 'task-git-tag')">
+          <div class="task-checkbox"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+          <div class="task-body">
+            <div class="task-title">Tag the Release in Git</div>
+            <div class="task-desc">
+              Tag the exact commit of this production build to preserve reproducibility.
+            </div>
+          </div>
+        </div>
+
+        <div class="code-container">
+          <div class="code-header">
+            <span>GIT COMMANDS</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><code><span class="code-cmd">git</span> tag -a v1.0.0 -m "Release v1.0.0: Initial Production MVP"
+<span class="code-cmd">git</span> push origin v1.0.0</code></pre>
+        </div>
+
+        <!-- Checksum generation -->
+        <p style="font-size:0.88rem; color:var(--text-muted); margin: 16px 0 8px;">
+          Calculate SHA-256 checksum so users can verify the integrity of the downloaded APK:
+        </p>
+        <div class="code-container">
+          <div class="code-header">
+            <span>POWERSHELL CHECKSUM</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><code><span class="code-cmd">Get-FileHash</span> build\app\outputs\flutter-apk\app-release.apk <span class="code-flag">-Algorithm</span> SHA256</code></pre>
+        </div>
+
+        <p style="font-size:0.88rem; color:var(--text-muted); margin: 20px 0 8px;">
+          Recommended Release Description Template for GitHub:
+        </p>
+        <div class="release-template-box">
+## Family Health Tracker v1.0.0 (Production Release)
+
+### ✨ Features
+- 🩺 Complete Blood Pressure & Glucose tracking with AHA/ACC & ADA clinical classification
+- 👨‍👩‍👧‍👦 Multi-profile family health management with personalized avatars & themes
+- 📄 Professional PDF Doctor Reports with trend visualization
+- 🔒 100% Offline & Private (SQLite storage on-device)
+- 💾 One-click JSON Data Backup & Restore
+
+### 📲 Installation Instructions
+1. Download `FamilyHealthTracker-v1.0.0.apk` below.
+2. Tap the downloaded file on your Android device.
+3. If prompted, allow "Install from Unknown Sources" for your browser/file manager.
+4. Enjoy private family health tracking!
+        </div>
+      </section>
+
+      <!-- Future Updates & Maintenance -->
+      <section class="section-container" id="future-updates">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <span class="section-number">LIFECYCLE</span>
+            <h2 class="section-title">First-Time Setup vs. Next Update Steps</h2>
+          </div>
+        </div>
+
+        <!-- Danger Callout: Debug vs Release Overwrites -->
+        <div class="callout callout-danger">
+          <div class="callout-icon">🚨</div>
+          <div>
+            <strong>CRITICAL RULE: NEVER RUN <code>flutter run</code> ON A PHONE WITH A SIGNED RELEASE APP</strong><br />
+            Standard <code>flutter run</code> installs a <strong>Debug APK</strong> signed with Android's generic debug certificate. If your phone already has the signed release APK:
+            <ul style="margin: 6px 0 0 18px; line-height: 1.6;">
+              <li>Android will reject the update with <code>INSTALL_FAILED_UPDATE_INCOMPATIBLE</code> (signature mismatch).</li>
+              <li>If you uninstall the app to force debug mode, <strong>Android will permanently wipe your local SQLite database</strong> (all family members and health logs will be lost).</li>
+              <li>Always update existing release installs using a new <strong>Signed Release APK</strong> via <code>adb install -r</code>.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Workflow Comparison: First Time vs Updates -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin: 20px 0;">
+          
+          <!-- Column 1: First-Time Setup -->
+          <div class="card" style="border-top: 3px solid var(--accent-purple);">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+              <span style="font-size: 1.25rem;">🌱</span>
+              <h3 style="color:#fff; font-size:1.05rem;">1. First-Time Setup (Initial Release)</h3>
+            </div>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:14px;">
+              Perform these configuration steps <strong>only once</strong> when initializing your production pipeline:
+            </p>
+            <ol style="padding-left: 20px; font-size: 0.85rem; color: var(--text-muted); line-height: 1.8;">
+              <li><strong>Generate Keystore:</strong> Run <code>keytool</code> to create <code>health-tracker-release.jks</code> in a secure directory.</li>
+              <li><strong>Configure Credentials:</strong> Create <code>android/key.properties</code> with passwords, key alias, and path to the keystore.</li>
+              <li><strong>Protect in Git:</strong> Verify <code>key.properties</code> and <code>*.jks</code> are listed in <code>.gitignore</code> so private keys never leak.</li>
+              <li><strong>Set R8 Rules:</strong> Add native keep rules in <code>android/app/proguard-rules.pro</code> and enable shrinking in <code>build.gradle.kts</code>.</li>
+              <li><strong>Initial Version:</strong> Set <code>version: 1.0.0+1</code> in <code>pubspec.yaml</code>.</li>
+              <li><strong>Compile & Install:</strong> Build the first signed release APK and install via <code>adb install</code>.</li>
+            </ol>
+          </div>
+
+          <!-- Column 2: Subsequent Updates -->
+          <div class="card" style="border-top: 3px solid var(--accent-emerald);">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+              <span style="font-size: 1.25rem;">🚀</span>
+              <h3 style="color:#fff; font-size:1.05rem;">2. Subsequent Updates (New Versions)</h3>
+            </div>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:14px;">
+              Follow this quick 5-step checklist for <strong>every subsequent update</strong> (e.g., v1.0.1, v1.0.2...):
+            </p>
+            <ol style="padding-left: 20px; font-size: 0.85rem; color: var(--text-muted); line-height: 1.8;">
+              <li><strong>Keep Keystore Untouched:</strong> Always use the exact same keystore and key alias so Android recognizes the app author.</li>
+              <li><strong>Bump Version:</strong> Increment <code>version: X.Y.Z+N</code> in <code>pubspec.yaml</code> and update the footer in <code>settings_screen.dart</code>.</li>
+              <li><strong>DB Check:</strong> If tables or columns changed, bump DB version and write migration in <code>_upgradeDB</code>. (Never drop tables!)</li>
+              <li><strong>Compile Release APK:</strong> Run <code>flutter build apk --release ...</code></li>
+              <li><strong>In-Place Install:</strong> Run <code>adb install -r ...</code> to preserve all user database records.</li>
+            </ol>
+          </div>
+
+        </div>
+
+        <!-- Step-by-Step Update Execution Guide -->
+        <div class="card" style="margin-top: 16px;">
+          <h3 style="color:#fff; font-size:1.05rem; margin-bottom:12px;">Step-by-Step Production Update Commands</h3>
+          
+          <p style="font-size:0.88rem; color:var(--text-muted); margin-bottom: 8px;">
+            <strong>Step 1: Bump version in <code>pubspec.yaml</code></strong> (Increment both SemVer and build integer):
+          </p>
+          <div class="code-container">
+            <div class="code-header">
+              <span>pubspec.yaml</span>
+            </div>
+            <pre><code><span class="code-comment"># Format: version: MAJOR.MINOR.PATCH+BUILD_NUMBER</span>
+<span class="code-key">version</span>: <span class="code-val">1.0.1+2</span></code></pre>
+          </div>
+
+          <p style="font-size:0.88rem; color:var(--text-muted); margin: 16px 0 8px;">
+            <strong>Step 2: Compile the new signed Release APK</strong>:
+          </p>
+          <div class="code-container">
+            <div class="code-header">
+              <span>POWERSHELL / TERMINAL</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre><code><span class="code-cmd">flutter</span> build apk <span class="code-flag">--release</span> <span class="code-flag">--obfuscate</span> <span class="code-flag">--split-debug-info</span>=build/app/outputs/symbols</code></pre>
+          </div>
+
+          <p style="font-size:0.88rem; color:var(--text-muted); margin: 16px 0 8px;">
+            <strong>Step 3: Perform In-Place Update on Connected Android Phone</strong> (keeps data intact):
+          </p>
+          <div class="code-container">
+            <div class="code-header">
+              <span>POWERSHELL / ADB</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre><code><span class="code-cmd">adb</span> install -r build/app/outputs/flutter-apk/app-release.apk</code></pre>
+          </div>
+
+          <p style="font-size:0.88rem; color:var(--text-muted); margin: 16px 0 8px;">
+            <strong>Step 4: Tag & Commit the Update</strong>:
+          </p>
+          <div class="code-container">
+            <div class="code-header">
+              <span>GIT COMMANDS</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre><code><span class="code-cmd">git</span> add pubspec.yaml lib/ui/screens/settings_screen.dart
+<span class="code-cmd">git</span> commit -m "chore(release): bump version to 1.0.1+2"
+<span class="code-cmd">git</span> tag -a v1.0.1 -m "Release v1.0.1: Graph tooltip contrast and UI polish"
+<span class="code-cmd">git</span> push origin main --tags</code></pre>
+          </div>
+        </div>
+
+        <!-- Versioning Reference Table -->
+        <div class="card" style="margin-top: 16px;">
+          <h3 style="color:#fff; font-size:1.05rem; margin-bottom:10px;">Versioning Anatomy (<code>MAJOR.MINOR.PATCH+BUILD</code>)</h3>
+          <table class="specs-table">
+            <thead>
+              <tr>
+                <th>Part</th>
+                <th>Example</th>
+                <th>When to Increment</th>
+                <th>Target Audience</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>PATCH</strong></td>
+                <td><code>1.0.1</code></td>
+                <td>Bug fixes, UI contrast adjustments, small tweaks</td>
+                <td>End Users (SemVer)</td>
+              </tr>
+              <tr>
+                <td><strong>MINOR</strong></td>
+                <td><code>1.1.0</code></td>
+                <td>New features added without breaking changes (e.g. Medicine reminders)</td>
+                <td>End Users (SemVer)</td>
+              </tr>
+              <tr>
+                <td><strong>MAJOR</strong></td>
+                <td><code>2.0.0</code></td>
+                <td>Major redesigns or breaking database schema overhauls</td>
+                <td>End Users (SemVer)</td>
+              </tr>
+              <tr>
+                <td><strong>BUILD NUMBER</strong></td>
+                <td><code>+2</code> (after <code>+</code>)</td>
+                <td><strong>Every single release without exception</strong> (must always increase: 1, 2, 3...)</td>
+                <td>Android OS (<code>versionCode</code>)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Database Safety Rules -->
+        <div class="card" style="margin-top: 16px;">
+          <h3 style="color:#fff; font-size:1.05rem; margin-bottom:10px;">Safe Database Evolution Rules</h3>
+          <p style="font-size:0.88rem; color:var(--text-muted); margin-bottom:12px;">
+            Because direct APK users update by installing new APKs on top of existing installs, adhere to these 3 unbreakable rules:
+          </p>
+          <ul style="padding-left: 20px; font-size: 0.88rem; color: var(--text-muted); line-height: 1.8;">
+            <li><strong>Never drop tables or alter <code>db.delete</code></strong> in <code>database_helper.dart</code> for production updates.</li>
+            <li><strong>Always bump <code>version</code></strong> (e.g. from 3 to 4) and write an explicit <code>if (oldVersion &lt; 4) { await db.execute('ALTER TABLE ... ADD COLUMN ...'); }</code> in <code>_upgradeDB</code>.</li>
+            <li><strong>Always bump <code>pubspec.yaml</code> version</strong> (e.g., <code>1.0.1+2</code>) so Android recognizes the APK as a newer build.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer class="page-footer">
+        <div>Family Health Tracker • Direct APK Production Guide</div>
+        <div>Generated for <code>com.toofanalpha.health_tracker</code></div>
+      </footer>
+
+    </main>
+  </div>
+
+  <script>
+    // Copy code snippet to clipboard
+    function copyCode(button) {
+      const codeBlock = button.closest('.code-container').querySelector('pre code');
+      const text = codeBlock.innerText;
+      
+      navigator.clipboard.writeText(text).then(() => {
+        const originalText = button.innerText;
+        button.innerText = 'Copied!';
+        button.classList.add('copied');
+        setTimeout(() => {
+          button.innerText = originalText;
+          button.classList.remove('copied');
+        }, 2000);
+      });
+    }
+
+    // Interactive Checklist logic with LocalStorage persistence
+    const STORAGE_KEY = 'health_tracker_release_checklist';
+
+    function loadSavedTasks() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        document.querySelectorAll('.task-item').forEach(item => {
+          const onclickAttr = item.getAttribute('onclick');
+          const match = onclickAttr && onclickAttr.match(/'([^']+)'/);
+          if (match && match[1]) {
+            const taskId = match[1];
+            if (saved[taskId]) {
+              item.classList.add('checked');
+            }
+          }
+        });
+      } catch (e) {
+        console.error('Failed to load tasks', e);
+      }
+      updateProgress();
+    }
+
+    function toggleTask(taskElement, taskId) {
+      taskElement.classList.toggle('checked');
+      saveTasks();
+      updateProgress();
+    }
+
+    function saveTasks() {
+      const state = {};
+      document.querySelectorAll('.task-item').forEach(item => {
+        const onclickAttr = item.getAttribute('onclick');
+        const match = onclickAttr && onclickAttr.match(/'([^']+)'/);
+        if (match && match[1]) {
+          const taskId = match[1];
+          state[taskId] = item.classList.contains('checked');
+        }
+      });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function updateProgress() {
+      const allTasks = document.querySelectorAll('.task-item');
+      const checkedTasks = document.querySelectorAll('.task-item.checked');
+      const total = allTasks.length;
+      const completed = checkedTasks.length;
+      const percentage = total === 0 ? 0 : Math.round((completed / total) * 100);
+
+      const bar = document.getElementById('progressBar');
+      const text = document.getElementById('progressPercentage');
+      const count = document.getElementById('tasksCompletedCount');
+
+      if (bar) bar.style.width = percentage + '%';
+      if (text) text.innerText = percentage + '%';
+      if (count) count.innerText = `${completed} of ${total} tasks completed`;
+    }
+
+    // Active sidebar scrolling link highlight
+    window.addEventListener('DOMContentLoaded', () => {
+      loadSavedTasks();
+
+      const sections = document.querySelectorAll('section[id]');
+      const navLinks = document.querySelectorAll('.nav-item a');
+
+      window.addEventListener('scroll', () => {
+        let current = '';
+        sections.forEach(section => {
+          const sectionTop = section.offsetTop - 120;
+          if (pageYOffset >= sectionTop) {
+            current = section.getAttribute('id');
+          }
+        });
+
+        navLinks.forEach(link => {
+          link.classList.remove('active');
+          if (link.getAttribute('href') === '#' + current) {
+            link.classList.add('active');
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>
