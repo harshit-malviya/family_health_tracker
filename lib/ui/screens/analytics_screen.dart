@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
+import '../../models/bp_reading.dart';
+import '../../models/glucose_reading.dart';
 import '../../providers/health_providers.dart';
 import '../widgets/family_member_header.dart';
 
@@ -70,7 +72,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
     );
   }
 
-  Widget _buildBpAnalytics(List bpReadings) {
+  Widget _buildBpAnalytics(List<BpReading> bpReadings) {
     if (bpReadings.isEmpty) {
       return const Center(
         child: Text('No blood pressure logs yet for this member.'),
@@ -96,10 +98,10 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
     for (final r in recent) {
       final hour = r.timestamp.hour;
       if (hour >= 5 && hour < 12) {
-        morningSysTotal += r.systolic as int;
+        morningSysTotal += r.systolic;
         morningCount++;
       } else if (hour >= 17 && hour < 23) {
-        eveningSysTotal += r.systolic as int;
+        eveningSysTotal += r.systolic;
         eveningCount++;
       }
     }
@@ -144,6 +146,92 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
                   height: 220,
                   child: LineChart(
                     LineChartData(
+                      lineTouchData: LineTouchData(
+                        handleBuiltInTouches: true,
+                        getTouchedSpotIndicator: (LineChartBarData barData, List<int> indicators) {
+                          return indicators.map((index) {
+                            return TouchedSpotIndicatorData(
+                              FlLine(
+                                color: Colors.grey.withValues(alpha: 0.35),
+                                strokeWidth: 1.5,
+                                dashArray: [4, 4],
+                              ),
+                              FlDotData(
+                                show: true,
+                                getDotPainter: (spot, percent, bar, index) => FlDotCirclePainter(
+                                  radius: 5,
+                                  color: Colors.white,
+                                  strokeWidth: 3,
+                                  strokeColor: bar.color ?? AppColors.primary,
+                                ),
+                              ),
+                            );
+                          }).toList();
+                        },
+                        touchTooltipData: LineTouchTooltipData(
+                          getTooltipColor: (_) => Colors.white,
+                          tooltipBorderRadius: BorderRadius.circular(12),
+                          tooltipBorder: BorderSide(
+                            color: Colors.grey.withValues(alpha: 0.25),
+                            width: 1.5,
+                          ),
+                          tooltipPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          maxContentWidth: 200,
+                          fitInsideHorizontally: true,
+                          fitInsideVertically: true,
+                          getTooltipItems: (touchedSpots) {
+                            return touchedSpots.map((spot) {
+                              final isSystolic = spot.barIndex == 0;
+                              final isFirst = spot == touchedSpots.first;
+                              final index = spot.x.toInt();
+                              final reading = (index >= 0 && index < recent.length) ? recent[index] : null;
+                              final dateStr = reading != null
+                                  ? DateFormat('d MMM, h:mm a').format(reading.timestamp)
+                                  : '';
+
+                              if (isFirst && dateStr.isNotEmpty) {
+                                return LineTooltipItem(
+                                  '$dateStr\n',
+                                  const TextStyle(
+                                    color: AppColors.textMuted,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                    height: 1.4,
+                                  ),
+                                  children: [
+                                    TextSpan(
+                                      text: isSystolic ? 'SYS: ${spot.y.toInt()} mmHg' : 'DIA: ${spot.y.toInt()} mmHg',
+                                      style: TextStyle(
+                                        color: isSystolic ? AppColors.primary : AppColors.secondary,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    if (reading != null && reading.pulse > 0)
+                                      TextSpan(
+                                        text: '  (${reading.pulse} bpm)',
+                                        style: const TextStyle(
+                                          color: AppColors.textMuted,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.normal,
+                                        ),
+                                      ),
+                                  ],
+                                );
+                              } else {
+                                return LineTooltipItem(
+                                  isSystolic ? 'SYS: ${spot.y.toInt()} mmHg' : 'DIA: ${spot.y.toInt()} mmHg',
+                                  TextStyle(
+                                    color: isSystolic ? AppColors.primary : AppColors.secondary,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                );
+                              }
+                            }).toList();
+                          },
+                        ),
+                      ),
                       gridData: FlGridData(
                         show: true,
                         drawVerticalLine: false,
@@ -252,7 +340,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
     );
   }
 
-  Widget _buildGlucoseAnalytics(List glucoseReadings, String unit) {
+  Widget _buildGlucoseAnalytics(List<GlucoseReading> glucoseReadings, String unit) {
     if (glucoseReadings.isEmpty) {
       return const Center(
         child: Text('No blood glucose logs yet for this member.'),
@@ -298,6 +386,83 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
                   height: 220,
                   child: LineChart(
                     LineChartData(
+                      lineTouchData: LineTouchData(
+                        handleBuiltInTouches: true,
+                        getTouchedSpotIndicator: (LineChartBarData barData, List<int> indicators) {
+                          return indicators.map((index) {
+                            return TouchedSpotIndicatorData(
+                              FlLine(
+                                color: Colors.grey.withValues(alpha: 0.35),
+                                strokeWidth: 1.5,
+                                dashArray: [4, 4],
+                              ),
+                              FlDotData(
+                                show: true,
+                                getDotPainter: (spot, percent, bar, index) => FlDotCirclePainter(
+                                  radius: 5,
+                                  color: Colors.white,
+                                  strokeWidth: 3,
+                                  strokeColor: bar.color ?? AppColors.secondary,
+                                ),
+                              ),
+                            );
+                          }).toList();
+                        },
+                        touchTooltipData: LineTouchTooltipData(
+                          getTooltipColor: (_) => Colors.white,
+                          tooltipBorderRadius: BorderRadius.circular(12),
+                          tooltipBorder: BorderSide(
+                            color: Colors.grey.withValues(alpha: 0.25),
+                            width: 1.5,
+                          ),
+                          tooltipPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          maxContentWidth: 200,
+                          fitInsideHorizontally: true,
+                          fitInsideVertically: true,
+                          getTooltipItems: (touchedSpots) {
+                            return touchedSpots.map((spot) {
+                              final index = spot.x.toInt();
+                              final reading = (index >= 0 && index < recent.length) ? recent[index] : null;
+                              final dateStr = reading != null
+                                  ? DateFormat('d MMM, h:mm a').format(reading.timestamp)
+                                  : '';
+                              final valStr = unit == 'mmol/L'
+                                  ? spot.y.toStringAsFixed(1)
+                                  : spot.y.toInt().toString();
+                              final meal = reading?.mealContext.label ?? '';
+
+                              return LineTooltipItem(
+                                dateStr.isNotEmpty ? '$dateStr\n' : '',
+                                const TextStyle(
+                                  color: AppColors.textMuted,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.4,
+                                ),
+                                children: [
+                                  TextSpan(
+                                    text: '$valStr $unit',
+                                    style: const TextStyle(
+                                      color: AppColors.secondary,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  if (meal.isNotEmpty)
+                                    TextSpan(
+                                      text: '  •  $meal',
+                                      style: const TextStyle(
+                                        color: AppColors.textDark,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                ],
+                              );
+                            }).toList();
+                          },
+                        ),
+                      ),
                       gridData: FlGridData(
                         show: true,
                         drawVerticalLine: false,
