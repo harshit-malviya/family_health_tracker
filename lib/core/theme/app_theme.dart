@@ -1,18 +1,27 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../constants/app_colors.dart';
 
 class AppTheme {
+  static const String fontOutfit = 'Outfit';
+  static const String fontNotoSansDevanagari = 'NotoSansDevanagari';
+
   static ThemeData get lightTheme => getTheme();
 
   static ThemeData getTheme([Locale? locale]) {
     final isHindi = locale?.languageCode == 'hi';
-    final baseTextTheme = isHindi
-        ? GoogleFonts.notoSansDevanagariTextTheme()
-        : GoogleFonts.outfitTextTheme();
+    final primaryFontFamily = isHindi ? fontNotoSansDevanagari : fontOutfit;
+    final fallbackFamilies = isHindi ? const [fontOutfit] : const [fontNotoSansDevanagari];
+
+    final defaultTextTheme = Typography.material2021().black;
+    final baseTextTheme = defaultTextTheme.apply(
+      fontFamily: primaryFontFamily,
+      fontFamilyFallback: fallbackFamilies,
+    );
 
     return ThemeData(
       useMaterial3: true,
+      fontFamily: primaryFontFamily,
+      fontFamilyFallback: fallbackFamilies,
       scaffoldBackgroundColor: AppColors.background,
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.primary,
@@ -26,22 +35,32 @@ class AppTheme {
           color: AppColors.textDark,
           fontWeight: FontWeight.bold,
           letterSpacing: -0.5,
+          fontFamily: primaryFontFamily,
+          fontFamilyFallback: fallbackFamilies,
         ),
         titleLarge: baseTextTheme.titleLarge?.copyWith(
           color: AppColors.textDark,
           fontWeight: FontWeight.w700,
+          fontFamily: primaryFontFamily,
+          fontFamilyFallback: fallbackFamilies,
         ),
         titleMedium: baseTextTheme.titleMedium?.copyWith(
           color: AppColors.textDark,
           fontWeight: FontWeight.w600,
+          fontFamily: primaryFontFamily,
+          fontFamilyFallback: fallbackFamilies,
         ),
         bodyLarge: baseTextTheme.bodyLarge?.copyWith(
           color: AppColors.textDark,
           fontSize: 16,
+          fontFamily: primaryFontFamily,
+          fontFamilyFallback: fallbackFamilies,
         ),
         bodyMedium: baseTextTheme.bodyMedium?.copyWith(
           color: AppColors.textMuted,
           fontSize: 14,
+          fontFamily: primaryFontFamily,
+          fontFamilyFallback: fallbackFamilies,
         ),
       ),
       cardTheme: CardThemeData(
@@ -55,16 +74,18 @@ class AppTheme {
           ),
         ),
       ),
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: AppColors.background,
         elevation: 0,
         centerTitle: false,
         scrolledUnderElevation: 0,
-        iconTheme: IconThemeData(color: AppColors.textDark),
+        iconTheme: const IconThemeData(color: AppColors.textDark),
         titleTextStyle: TextStyle(
           color: AppColors.textDark,
           fontSize: 22,
           fontWeight: FontWeight.bold,
+          fontFamily: primaryFontFamily,
+          fontFamilyFallback: fallbackFamilies,
         ),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
@@ -84,9 +105,11 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          textStyle: const TextStyle(
+          textStyle: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
+            fontFamily: primaryFontFamily,
+            fontFamilyFallback: fallbackFamilies,
           ),
         ),
       ),
