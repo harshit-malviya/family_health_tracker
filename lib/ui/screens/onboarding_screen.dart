@@ -230,7 +230,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                 controller: _nameController,
                                 decoration: const InputDecoration(
                                   labelText: 'Full Name / Nickname',
-                                  hintText: 'e.g. John, Dad, Grandpa',
+                                  hintText: 'e.g. Maa, Pita ji, Dada ji, etc.',
                                   prefixIcon: Icon(Icons.person_outline),
                                 ),
                               ),
