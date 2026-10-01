@@ -179,6 +179,33 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
+          const SizedBox(height: 28),
+
+          // App Version & Branding Footer
+          Center(
+            child: Column(
+              children: [
+                const Text(
+                  'Family Health Tracker',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textDark,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'v1.0.1 (Build 2)',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
         ],
       ),
     );
