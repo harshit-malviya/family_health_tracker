@@ -16,12 +16,32 @@ final healthRepositoryProvider = Provider<HealthRepository>((ref) {
   return HealthRepository();
 });
 
-// Glucose Unit Notifier ('mg/dL' or 'mmol/L')
+// Preference key for glucose unit
+const String kGlucoseUnitPrefKey = 'glucose_unit_preference';
+
+// Glucose Unit Notifier ('mg/dL' or 'mmol/L') backed by SharedPreferences
 class GlucoseUnitNotifier extends Notifier<String> {
   @override
-  String build() => 'mg/dL';
+  String build() {
+    try {
+      final prefs = ref.watch(sharedPreferencesProvider);
+      final saved = prefs.getString(kGlucoseUnitPrefKey);
+      if (saved == 'mmol/L' || saved == 'mg/dL') {
+        return saved!;
+      }
+    } catch (_) {}
+    return 'mg/dL';
+  }
 
-  void setUnit(String unit) => state = unit;
+  Future<void> setUnit(String unit) async {
+    if (unit != 'mmol/L' && unit != 'mg/dL') return;
+    if (state == unit) return;
+    state = unit;
+    try {
+      final prefs = ref.read(sharedPreferencesProvider);
+      await prefs.setString(kGlucoseUnitPrefKey, unit);
+    } catch (_) {}
+  }
 }
 
 final glucoseUnitProvider =

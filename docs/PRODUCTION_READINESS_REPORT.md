@@ -79,7 +79,7 @@ The application has a clean visual design, strong domain foundations adhering to
 | **CRIT-06** | **P1** | Data Integrity | `lib/ui/widgets/quick_bp_modal.dart` & `quick_glucose_modal.dart` | No input range validation; allows `diastolic > systolic`; rapid double-taps insert duplicates | Corrupt/impossible medical logs recorded; duplicate entries generated | **RESOLVED**: Enforced physiological bounds (Sys: 40-300, Dia: 30-200, Sys > Dia, Pulse: 30-250, Glucose: 20-600 mg/dL / 1.1-33.3 mmol/L), dynamic inline error alerts, and async submission lock |
 | **CRIT-07** | **P2** | Performance | `lib/core/database/database_helper.dart` | No database indexes on `(memberId, timestamp)` | Full table scan on every query; sluggish history and chart queries over time | **RESOLVED**: Bumped DB version to 4, added composite indexes `(memberId, timestamp DESC)` in `_createDB` and `_upgradeDB`, verified with EXPLAIN QUERY PLAN |
 | **CRIT-08** | **P2** | UI / Layout | `lib/ui/screens/dashboard_screen.dart` | Unbounded `Text` inside unconstrained header `Row` | Right pixel overflow (yellow/black tape) on small screens or long member names | **RESOLVED**: Wrapped header title `Text` in `Flexible` with `TextOverflow.ellipsis` and `maxLines: 1` |
-| **CRIT-09** | **P2** | State / Settings | `lib/providers/health_providers.dart` | `glucoseUnitProvider` is in-memory only and does not persist to disk | Setting `mmol/L` resets back to `mg/dL` on every app restart | Persist glucose unit in `SharedPreferences` exactly like `localeProvider` |
+| **CRIT-09** | **P2** | State / Settings | `lib/providers/health_providers.dart` | `glucoseUnitProvider` is in-memory only and does not persist to disk | Setting `mmol/L` resets back to `mg/dL` on every app restart | **RESOLVED**: Backed `GlucoseUnitNotifier` by `SharedPreferences` with synchronous startup read & sanitization |
 | **CRIT-10** | **P2** | Lifecycle | `lib/ui/screens/doctor_report_screen.dart` | Missing `catch` block on direct print; `setState` called after unmount | Flutter runtime exceptions if user navigates back while PDF renders | Wrap in complete `try/catch` and add `if (!mounted) return;` before `setState` |
 | **CRIT-11** | **P2** | Build / Release | `android/app/build.gradle.kts` | Silent fallback to debug keystore when `key.properties` is missing | Accidental debug signing of release builds, failing Google Play upload | Throw a clear build error in Gradle if release signing configuration is absent |
 | **CRIT-12** | **P2** | Privacy / PHI | `lib/services/backup_restore_service.dart` | Sensitive medical records written in plaintext JSON; no `allowBackup` rules in manifest | Patient medical data exposed in cleartext and potentially synced to third-party clouds | Add `dataExtractionRules`, set `allowBackup="false"` or encrypt backups with user password |
@@ -275,12 +275,13 @@ final dia = int.tryParse(_diaController.text) ?? 80;  // Silently invents 80
 
 ### [CRIT-09] Glucose Unit Preference Does Not Persist Across App Restarts
 **Severity:** P2 — HIGH  
+**Status:** **RESOLVED**  
 **Category:** State Management / UX  
 **File:** [health_providers.dart](file:///g:/Code/health_tracker/lib/providers/health_providers.dart#L13-L22)  
 **Location:** Lines 13–22  
 **Problem:** `GlucoseUnitNotifier` stores the preferred unit in memory with a default of `'mg/dL'`. Unlike `LocaleNotifier`, it does not read from or write to `SharedPreferences`.  
 **Why it matters:** Patients in the UK, Canada, Australia, and European countries use `mmol/L`. Every time they kill the app or restart their phone, the app reverts to `mg/dL`, causing extreme confusion and potential misinterpretation of blood sugar levels.  
-**Recommended solution:** Implement `SharedPreferences` persistence in `GlucoseUnitNotifier` matching the pattern used in `LocaleNotifier`.  
+**Resolution Implemented:** Implemented persistent storage in `GlucoseUnitNotifier` using `sharedPreferencesProvider`. In `build()`, the preference is read synchronously from pre-injected `SharedPreferences` (ensuring immediate initial rendering without UI flicker), with strict sanitization (`'mg/dL'` or `'mmol/L'`). `setUnit` persists updates asynchronously. Verified with unit tests covering default values, pre-seeded startup, mutation, restart simulation, and corrupt value fallback in `test/glucose_unit_persistence_test.dart`.  
 **Risk of fixing:** Low.
 
 ---
