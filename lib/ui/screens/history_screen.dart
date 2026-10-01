@@ -176,7 +176,6 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           color: Colors.transparent,
           child: InkWell(
             borderRadius: BorderRadius.circular(20),
-            onTap: () => _editBp(context, bp),
             onLongPress: () => _showCardActionSheet(context, bp: bp),
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -299,7 +298,6 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           color: Colors.transparent,
           child: InkWell(
             borderRadius: BorderRadius.circular(20),
-            onTap: () => _editGlucose(context, g),
             onLongPress: () => _showCardActionSheet(context, glucose: g),
             child: Padding(
               padding: const EdgeInsets.all(16),
