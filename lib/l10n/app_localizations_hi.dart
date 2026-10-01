@@ -549,4 +549,15 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get errorSaveFailed =>
       'रीडिंग सहेजने में विफल। कृपया पुनः प्रयास करें।';
+
+  @override
+  String get directPrintReport => 'सीधे रिपोर्ट प्रिंट करें';
+
+  @override
+  String get errorGeneratePdf =>
+      'PDF रिपोर्ट जनरेट करने में विफल। कृपया पुनः प्रयास करें।';
+
+  @override
+  String get errorPrintPdf =>
+      'रिपोर्ट प्रिंट करने में विफल। कृपया प्रिंटर सेटिंग्स जांचें।';
 }

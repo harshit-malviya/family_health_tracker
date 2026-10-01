@@ -80,7 +80,7 @@ The application has a clean visual design, strong domain foundations adhering to
 | **CRIT-07** | **P2** | Performance | `lib/core/database/database_helper.dart` | No database indexes on `(memberId, timestamp)` | Full table scan on every query; sluggish history and chart queries over time | **RESOLVED**: Bumped DB version to 4, added composite indexes `(memberId, timestamp DESC)` in `_createDB` and `_upgradeDB`, verified with EXPLAIN QUERY PLAN |
 | **CRIT-08** | **P2** | UI / Layout | `lib/ui/screens/dashboard_screen.dart` | Unbounded `Text` inside unconstrained header `Row` | Right pixel overflow (yellow/black tape) on small screens or long member names | **RESOLVED**: Wrapped header title `Text` in `Flexible` with `TextOverflow.ellipsis` and `maxLines: 1` |
 | **CRIT-09** | **P2** | State / Settings | `lib/providers/health_providers.dart` | `glucoseUnitProvider` is in-memory only and does not persist to disk | Setting `mmol/L` resets back to `mg/dL` on every app restart | **RESOLVED**: Backed `GlucoseUnitNotifier` by `SharedPreferences` with synchronous startup read & sanitization |
-| **CRIT-10** | **P2** | Lifecycle | `lib/ui/screens/doctor_report_screen.dart` | Missing `catch` block on direct print; `setState` called after unmount | Flutter runtime exceptions if user navigates back while PDF renders | Wrap in complete `try/catch` and add `if (!mounted) return;` before `setState` |
+| **CRIT-10** | **P2** | Lifecycle | `lib/ui/screens/doctor_report_screen.dart` | Missing `catch` block on direct print; `setState` called after unmount | Flutter runtime exceptions if user navigates back while PDF renders | **RESOLVED**: Added localized error handling (`errorPrintPdf`, `errorGeneratePdf`) with `SnackBar`s, guarded `setState` with `if (mounted)`, and localized the direct print button |
 | **CRIT-11** | **P2** | Build / Release | `android/app/build.gradle.kts` | Silent fallback to debug keystore when `key.properties` is missing | Accidental debug signing of release builds, failing Google Play upload | Throw a clear build error in Gradle if release signing configuration is absent |
 | **CRIT-12** | **P2** | Privacy / PHI | `lib/services/backup_restore_service.dart` | Sensitive medical records written in plaintext JSON; no `allowBackup` rules in manifest | Patient medical data exposed in cleartext and potentially synced to third-party clouds | Add `dataExtractionRules`, set `allowBackup="false"` or encrypt backups with user password |
 
@@ -288,12 +288,20 @@ final dia = int.tryParse(_diaController.text) ?? 80;  // Silently invents 80
 
 ### [CRIT-10] DoctorReportScreen Unhandled Exception and Unmounted setState
 **Severity:** P2 — HIGH  
+**Status:** **RESOLVED**  
 **Category:** Error Handling / Widget Lifecycle  
 **File:** [doctor_report_screen.dart](file:///g:/Code/health_tracker/lib/ui/screens/doctor_report_screen.dart#L154-L204)  
 **Location:** Lines 154–204  
-**Problem:** The "Direct Print Report" action invokes `PdfReportService.generateReport()` inside a `try` block that has a `finally` clause but NO `catch` clause. If PDF generation fails, the exception is unhandled. Additionally, both the Share and Print button `finally` blocks execute `setState(() => _isGenerating = false)` without verifying `if (!mounted) return;`.  
-**Why it matters:** If a user taps "Direct Print" and navigates back or if generation throws an error, the app logs a Flutter framework exception (`setState() called after dispose()`) or crashes.  
-**Recommended solution:** Add `catch (e)` to display an error dialog/SnackBar, and guard all post-await state mutations with `if (mounted) setState(...)`.  
+**Problem:** The "Direct Print Report" action invoked `PdfReportService.generateReport()` inside a `try` block that had a `finally` clause but NO `catch` clause. If PDF generation failed, the exception was unhandled. Additionally, both the Share and Print button `finally` blocks executed `setState(() => _isGenerating = false)` unconditionally without verifying `if (mounted)`.  
+**Why it matters:** If a user tapped "Direct Print" and navigated back while PDF generation was running or if generation threw an error, the app logged a Flutter framework exception (`setState() called after dispose()`) or crashed.  
+**Resolution Implemented:** 
+1. Added full `catch (e)` block to Direct Print displaying localized `l10n.errorPrintPdf` in a `SnackBar`.
+2. Updated Share PDF error display to use localized `l10n.errorGeneratePdf`.
+3. Guarded all `setState(() => _isGenerating = false)` in both `finally` blocks with `if (mounted)`.
+4. Guarded `ScaffoldMessenger.of(context)` with `if (context.mounted)`.
+5. Replaced hardcoded `'Direct Print Report'` text label with `l10n.directPrintReport`.
+6. Added localized keys to both `app_en.arb` and `app_hi.arb`.
+7. Verified with widget lifecycle tests in `test/doctor_report_lifecycle_test.dart` testing direct print errors, share errors, and screen unmounting during active PDF generation.  
 **Risk of fixing:** Low.
 
 ---

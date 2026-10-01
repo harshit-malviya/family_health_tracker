@@ -183,5 +183,8 @@
   "errorInvalidPulse": "पल्स 30 और 250 bpm के बीच होनी चाहिए",
   "errorInvalidGlucoseMgDl": "ग्लूकोज 20 और 600 mg/dL के बीच होना चाहिए",
   "errorInvalidGlucoseMmol": "ग्लूकोज 1.1 और 33.3 mmol/L के बीच होना चाहिए",
-  "errorSaveFailed": "रीडिंग सहेजने में विफल। कृपया पुनः प्रयास करें।"
+  "errorSaveFailed": "रीडिंग सहेजने में विफल। कृपया पुनः प्रयास करें।",
+  "directPrintReport": "सीधे रिपोर्ट प्रिंट करें",
+  "errorGeneratePdf": "PDF रिपोर्ट जनरेट करने में विफल। कृपया पुनः प्रयास करें।",
+  "errorPrintPdf": "रिपोर्ट प्रिंट करने में विफल। कृपया प्रिंटर सेटिंग्स जांचें।"
 }

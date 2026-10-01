@@ -163,11 +163,13 @@ class _DoctorReportScreenState extends ConsumerState<DoctorReportScreen> {
                       } catch (e) {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Failed to generate PDF: $e')),
+                            SnackBar(content: Text(l10n.errorGeneratePdf)),
                           );
                         }
                       } finally {
-                        setState(() => _isGenerating = false);
+                        if (mounted) {
+                          setState(() => _isGenerating = false);
+                        }
                       }
                     },
             ),
@@ -180,7 +182,7 @@ class _DoctorReportScreenState extends ConsumerState<DoctorReportScreen> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               ),
               icon: const Icon(Icons.print_rounded),
-              label: const Text('Direct Print Report'),
+              label: Text(l10n.directPrintReport),
               onPressed: (member == null || _isGenerating)
                   ? null
                   : () async {
@@ -197,8 +199,16 @@ class _DoctorReportScreenState extends ConsumerState<DoctorReportScreen> {
                           onLayout: (format) async => bytes,
                           name: 'Health_Report_${member.name}.pdf',
                         );
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(l10n.errorPrintPdf)),
+                          );
+                        }
                       } finally {
-                        setState(() => _isGenerating = false);
+                        if (mounted) {
+                          setState(() => _isGenerating = false);
+                        }
                       }
                     },
             ),

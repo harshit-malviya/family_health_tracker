@@ -545,4 +545,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorSaveFailed => 'Failed to save reading. Please try again.';
+
+  @override
+  String get directPrintReport => 'Direct Print Report';
+
+  @override
+  String get errorGeneratePdf =>
+      'Failed to generate PDF report. Please try again.';
+
+  @override
+  String get errorPrintPdf =>
+      'Failed to print report. Please check printer settings.';
 }

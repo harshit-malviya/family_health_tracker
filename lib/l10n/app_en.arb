@@ -251,5 +251,8 @@
   "errorInvalidPulse": "Pulse must be between 30 and 250 bpm",
   "errorInvalidGlucoseMgDl": "Glucose must be between 20 and 600 mg/dL",
   "errorInvalidGlucoseMmol": "Glucose must be between 1.1 and 33.3 mmol/L",
-  "errorSaveFailed": "Failed to save reading. Please try again."
+  "errorSaveFailed": "Failed to save reading. Please try again.",
+  "directPrintReport": "Direct Print Report",
+  "errorGeneratePdf": "Failed to generate PDF report. Please try again.",
+  "errorPrintPdf": "Failed to print report. Please check printer settings."
 }

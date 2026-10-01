@@ -1123,6 +1123,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to save reading. Please try again.'**
   String get errorSaveFailed;
+
+  /// No description provided for @directPrintReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Direct Print Report'**
+  String get directPrintReport;
+
+  /// No description provided for @errorGeneratePdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to generate PDF report. Please try again.'**
+  String get errorGeneratePdf;
+
+  /// No description provided for @errorPrintPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to print report. Please check printer settings.'**
+  String get errorPrintPdf;
 }
 
 class _AppLocalizationsDelegate
