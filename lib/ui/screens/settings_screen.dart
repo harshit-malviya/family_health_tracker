@@ -243,7 +243,7 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 4),
                 const Text(
-                  'v1.0.1 (Build 2)',
+                  'v1.1.0 (Build 3)',
                   style: TextStyle(
                     fontSize: 12,
                     color: AppColors.textMuted,
