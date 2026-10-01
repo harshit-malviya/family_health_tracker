@@ -556,4 +556,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get errorPrintPdf =>
       'Failed to print report. Please check printer settings.';
+
+  @override
+  String get backupSecurityWarningTitle =>
+      'Security Notice: Unencrypted Backup';
+
+  @override
+  String get backupSecurityWarningMessage =>
+      'This export creates an unencrypted JSON file containing sensitive personal health records (names, dates of birth, blood pressure, and blood sugar readings). Ensure you store or share this file securely.';
+
+  @override
+  String get backupExportAnyway => 'Export Anyway';
+
+  @override
+  String get backupCancel => 'Cancel';
+
+  @override
+  String get backupExportSuccess => 'Backup export completed.';
 }

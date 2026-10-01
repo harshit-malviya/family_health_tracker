@@ -1141,6 +1141,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to print report. Please check printer settings.'**
   String get errorPrintPdf;
+
+  /// No description provided for @backupSecurityWarningTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Security Notice: Unencrypted Backup'**
+  String get backupSecurityWarningTitle;
+
+  /// No description provided for @backupSecurityWarningMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This export creates an unencrypted JSON file containing sensitive personal health records (names, dates of birth, blood pressure, and blood sugar readings). Ensure you store or share this file securely.'**
+  String get backupSecurityWarningMessage;
+
+  /// No description provided for @backupExportAnyway.
+  ///
+  /// In en, this message translates to:
+  /// **'Export Anyway'**
+  String get backupExportAnyway;
+
+  /// No description provided for @backupCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get backupCancel;
+
+  /// No description provided for @backupExportSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup export completed.'**
+  String get backupExportSuccess;
 }
 
 class _AppLocalizationsDelegate

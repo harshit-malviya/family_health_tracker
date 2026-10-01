@@ -8,27 +8,90 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../core/constants/app_colors.dart';
+import '../l10n/app_localizations.dart';
 import '../providers/health_providers.dart';
 
 class BackupRestoreService {
-  /// Exports all app data into a structured .json file and opens the share sheet.
+  /// Prompts the user with a security warning regarding unencrypted PHI,
+  /// exports all app data into a structured .json file, opens the share sheet,
+  /// and promptly removes the unencrypted file from the device cache upon completion.
   static Future<void> exportBackup(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
+    final warningTitle = l10n?.backupSecurityWarningTitle ?? 'Security Notice: Unencrypted Backup';
+    final warningMessage = l10n?.backupSecurityWarningMessage ??
+        'This export creates an unencrypted JSON file containing sensitive personal health records (names, dates of birth, blood pressure, and blood sugar readings). Ensure you store or share this file securely.';
+    final cancelText = l10n?.backupCancel ?? 'Cancel';
+    final exportAnywayText = l10n?.backupExportAnyway ?? 'Export Anyway';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Row(
+          children: [
+            const Icon(Icons.shield_outlined, color: Colors.amber, size: 28),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                warningTitle,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          warningMessage,
+          style: const TextStyle(fontSize: 14, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(false),
+            child: Text(cancelText),
+          ),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.amber.shade800,
+            ),
+            onPressed: () => Navigator.of(dialogCtx).pop(true),
+            icon: const Icon(Icons.lock_open_rounded, size: 18),
+            label: Text(exportAnywayText),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    File? tempBackupFile;
     try {
+      final tempDir = await getTemporaryDirectory();
+
+      // Pre-export safety sweep: delete any existing orphaned backup files in cache
+      try {
+        final entries = tempDir.listSync();
+        for (final entry in entries) {
+          if (entry is File &&
+              entry.path.contains('health_tracker_backup_') &&
+              entry.path.endsWith('.json')) {
+            await entry.delete();
+          }
+        }
+      } catch (_) {}
+
       final repo = ref.read(healthRepositoryProvider);
       final jsonString = await repo.exportBackupJson();
 
-      final tempDir = await getTemporaryDirectory();
       final nowFormatted = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
       final fileName = 'health_tracker_backup_$nowFormatted.json';
-      final file = File('${tempDir.path}/$fileName');
+      tempBackupFile = File('${tempDir.path}/$fileName');
 
-      await file.writeAsString(jsonString);
+      await tempBackupFile.writeAsString(jsonString);
 
       if (!context.mounted) return;
 
       await SharePlus.instance.share(
         ShareParams(
-          files: [XFile(file.path, mimeType: 'application/json')],
+          files: [XFile(tempBackupFile.path, mimeType: 'application/json')],
           subject: 'Health Tracker Backup ($nowFormatted)',
           text: 'Health Tracker JSON Backup File ($fileName)',
         ),
@@ -41,6 +104,13 @@ class BackupRestoreService {
           backgroundColor: Colors.redAccent,
         ),
       );
+    } finally {
+      // Clean up unencrypted health backup from temporary cache
+      if (tempBackupFile != null && await tempBackupFile.exists()) {
+        try {
+          await tempBackupFile.delete();
+        } catch (_) {}
+      }
     }
   }
 

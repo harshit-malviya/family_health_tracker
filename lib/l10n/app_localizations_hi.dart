@@ -560,4 +560,21 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get errorPrintPdf =>
       'रिपोर्ट प्रिंट करने में विफल। कृपया प्रिंटर सेटिंग्स जांचें।';
+
+  @override
+  String get backupSecurityWarningTitle =>
+      'सुरक्षा सूचना: अनएन्क्रिप्टेड बैकअप';
+
+  @override
+  String get backupSecurityWarningMessage =>
+      'यह निर्यात एक अनएन्क्रिप्टेड JSON फ़ाइल बनाता है जिसमें संवेदनशील व्यक्तिगत स्वास्थ्य रिकॉर्ड (नाम, जन्म तिथि, रक्तचाप और रक्त शर्करा रीडिंग) शामिल हैं। सुनिश्चित करें कि आप इस फ़ाइल को सुरक्षित रूप से संग्रहीत या साझा करते हैं।';
+
+  @override
+  String get backupExportAnyway => 'फिर भी निर्यात करें';
+
+  @override
+  String get backupCancel => 'रद्द करें';
+
+  @override
+  String get backupExportSuccess => 'बैकअप निर्यात पूरा हुआ।';
 }

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import '../../models/family_member.dart';
@@ -10,6 +11,11 @@ class DatabaseHelper {
   static Database? _database;
 
   DatabaseHelper._init();
+
+  @visibleForTesting
+  static void setTestDatabase(Database? db) {
+    _database = db;
+  }
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -235,28 +241,146 @@ class DatabaseHelper {
 
   Future<bool> importFromJson(String jsonString) async {
     try {
-      final data = jsonDecode(jsonString) as Map<String, dynamic>;
+      final decoded = jsonDecode(jsonString);
+      if (decoded is! Map<String, dynamic>) {
+        return false;
+      }
       final db = await instance.database;
 
       await db.transaction((txn) async {
-        if (data.containsKey('family_members')) {
-          for (final m in data['family_members'] as List) {
-            await txn.insert('family_members', m as Map<String, dynamic>,
-                conflictAlgorithm: ConflictAlgorithm.replace);
+        // Collect existing member IDs to enforce foreign key integrity
+        final existingMembers = await txn.query('family_members', columns: ['id']);
+        final knownMemberIds = existingMembers
+            .map((m) => m['id']?.toString())
+            .whereType<String>()
+            .toSet();
+
+        // 1. Sanitize and insert family_members first
+        if (decoded['family_members'] is List) {
+          for (final raw in decoded['family_members'] as List) {
+            if (raw is! Map) continue;
+            final id = raw['id']?.toString();
+            final name = raw['name']?.toString();
+            final relation = raw['relation']?.toString();
+            final avatarEmoji = raw['avatarEmoji']?.toString() ?? '👤';
+            final colorValue = raw['colorValue'] is int
+                ? raw['colorValue'] as int
+                : int.tryParse(raw['colorValue']?.toString() ?? '') ?? 0xFF2196F3;
+
+            if (id == null || id.trim().isEmpty || name == null || name.trim().isEmpty || relation == null) {
+              continue; // Skip invalid records
+            }
+
+            final sanitized = <String, dynamic>{
+              'id': id.trim(),
+              'name': name.trim(),
+              'relation': relation.trim(),
+              'age': raw['age'] is int ? raw['age'] : int.tryParse(raw['age']?.toString() ?? ''),
+              'dateOfBirth': raw['dateOfBirth']?.toString(),
+              'colorValue': colorValue,
+              'avatarEmoji': avatarEmoji,
+            };
+
+            await txn.insert(
+              'family_members',
+              sanitized,
+              conflictAlgorithm: ConflictAlgorithm.replace,
+            );
+            knownMemberIds.add(id.trim());
           }
         }
 
-        if (data.containsKey('bp_readings')) {
-          for (final b in data['bp_readings'] as List) {
-            await txn.insert('bp_readings', b as Map<String, dynamic>,
-                conflictAlgorithm: ConflictAlgorithm.replace);
+        // 2. Sanitize and insert bp_readings
+        if (decoded['bp_readings'] is List) {
+          for (final raw in decoded['bp_readings'] as List) {
+            if (raw is! Map) continue;
+            final id = raw['id']?.toString();
+            final memberId = raw['memberId']?.toString();
+            final systolic = raw['systolic'] is int
+                ? raw['systolic'] as int
+                : int.tryParse(raw['systolic']?.toString() ?? '');
+            final diastolic = raw['diastolic'] is int
+                ? raw['diastolic'] as int
+                : int.tryParse(raw['diastolic']?.toString() ?? '');
+            final pulse = raw['pulse'] is int
+                ? raw['pulse'] as int
+                : int.tryParse(raw['pulse']?.toString() ?? '');
+            final timestampStr = raw['timestamp']?.toString();
+
+            if (id == null ||
+                id.trim().isEmpty ||
+                memberId == null ||
+                !knownMemberIds.contains(memberId.trim()) ||
+                systolic == null ||
+                diastolic == null ||
+                pulse == null ||
+                timestampStr == null ||
+                DateTime.tryParse(timestampStr) == null) {
+              continue; // Skip invalid readings or orphaned records
+            }
+
+            final arm = raw['arm']?.toString() ?? 'Left';
+            final posture = raw['posture']?.toString() ?? 'Sitting';
+            final hasArrhythmia = (raw['hasArrhythmia'] == 1 || raw['hasArrhythmia'] == true) ? 1 : 0;
+
+            final sanitized = <String, dynamic>{
+              'id': id.trim(),
+              'memberId': memberId.trim(),
+              'systolic': systolic,
+              'diastolic': diastolic,
+              'pulse': pulse,
+              'arm': arm,
+              'posture': posture,
+              'hasArrhythmia': hasArrhythmia,
+              'notes': raw['notes']?.toString(),
+              'timestamp': timestampStr,
+            };
+
+            await txn.insert(
+              'bp_readings',
+              sanitized,
+              conflictAlgorithm: ConflictAlgorithm.replace,
+            );
           }
         }
 
-        if (data.containsKey('glucose_readings')) {
-          for (final g in data['glucose_readings'] as List) {
-            await txn.insert('glucose_readings', g as Map<String, dynamic>,
-                conflictAlgorithm: ConflictAlgorithm.replace);
+        // 3. Sanitize and insert glucose_readings
+        if (decoded['glucose_readings'] is List) {
+          for (final raw in decoded['glucose_readings'] as List) {
+            if (raw is! Map) continue;
+            final id = raw['id']?.toString();
+            final memberId = raw['memberId']?.toString();
+            final valueMgDl = raw['valueMgDl'] is num
+                ? (raw['valueMgDl'] as num).toDouble()
+                : double.tryParse(raw['valueMgDl']?.toString() ?? '');
+            final timestampStr = raw['timestamp']?.toString();
+
+            if (id == null ||
+                id.trim().isEmpty ||
+                memberId == null ||
+                !knownMemberIds.contains(memberId.trim()) ||
+                valueMgDl == null ||
+                timestampStr == null ||
+                DateTime.tryParse(timestampStr) == null) {
+              continue; // Skip invalid or orphaned readings
+            }
+
+            final mealContext = raw['mealContext']?.toString() ?? 'Random';
+
+            final sanitized = <String, dynamic>{
+              'id': id.trim(),
+              'memberId': memberId.trim(),
+              'valueMgDl': valueMgDl,
+              'mealContext': mealContext,
+              'medicationNotes': raw['medicationNotes']?.toString(),
+              'timestamp': timestampStr,
+            };
+
+            await txn.insert(
+              'glucose_readings',
+              sanitized,
+              conflictAlgorithm: ConflictAlgorithm.replace,
+            );
           }
         }
       });

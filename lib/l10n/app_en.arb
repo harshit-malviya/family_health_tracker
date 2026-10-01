@@ -254,5 +254,10 @@
   "errorSaveFailed": "Failed to save reading. Please try again.",
   "directPrintReport": "Direct Print Report",
   "errorGeneratePdf": "Failed to generate PDF report. Please try again.",
-  "errorPrintPdf": "Failed to print report. Please check printer settings."
+  "errorPrintPdf": "Failed to print report. Please check printer settings.",
+  "backupSecurityWarningTitle": "Security Notice: Unencrypted Backup",
+  "backupSecurityWarningMessage": "This export creates an unencrypted JSON file containing sensitive personal health records (names, dates of birth, blood pressure, and blood sugar readings). Ensure you store or share this file securely.",
+  "backupExportAnyway": "Export Anyway",
+  "backupCancel": "Cancel",
+  "backupExportSuccess": "Backup export completed."
 }

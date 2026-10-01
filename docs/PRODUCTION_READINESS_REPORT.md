@@ -82,7 +82,7 @@ The application has a clean visual design, strong domain foundations adhering to
 | **CRIT-09** | **P2** | State / Settings | `lib/providers/health_providers.dart` | `glucoseUnitProvider` is in-memory only and does not persist to disk | Setting `mmol/L` resets back to `mg/dL` on every app restart | **RESOLVED**: Backed `GlucoseUnitNotifier` by `SharedPreferences` with synchronous startup read & sanitization |
 | **CRIT-10** | **P2** | Lifecycle | `lib/ui/screens/doctor_report_screen.dart` | Missing `catch` block on direct print; `setState` called after unmount | Flutter runtime exceptions if user navigates back while PDF renders | **RESOLVED**: Added localized error handling (`errorPrintPdf`, `errorGeneratePdf`) with `SnackBar`s, guarded `setState` with `if (mounted)`, and localized the direct print button |
 | **CRIT-11** | **P2** | Build / Release | `android/app/build.gradle.kts` | Silent fallback to debug keystore when `key.properties` is missing | Accidental debug signing of release builds, failing Google Play upload | **RESOLVED**: Removed silent debug fallback; added pre-execution task graph validation enforcing required credentials and keystore file existence with actionable GradleException |
-| **CRIT-12** | **P2** | Privacy / PHI | `lib/services/backup_restore_service.dart` | Sensitive medical records written in plaintext JSON; no `allowBackup` rules in manifest | Patient medical data exposed in cleartext and potentially synced to third-party clouds | Add `dataExtractionRules`, set `allowBackup="false"` or encrypt backups with user password |
+| **CRIT-12** | **P2** | Privacy / PHI | `lib/services/backup_restore_service.dart`, `AndroidManifest.xml` | Sensitive medical records written in plaintext JSON; no `allowBackup` rules in manifest | Patient medical data exposed in cleartext and potentially synced to third-party clouds | **RESOLVED**: Disabled Android Auto Backup with `allowBackup="false"` and `data_extraction_rules.xml`, added localized export PHI security warning dialog, ensured immediate cache file cleanup in `finally` block, and hardened JSON restore validation against corrupt or orphaned payloads |
 
 ---
 
@@ -322,15 +322,21 @@ final dia = int.tryParse(_diaController.text) ?? 80;  // Silently invents 80
 
 ### [CRIT-12] Plaintext Unencrypted Health Backups & Android Auto Backup PHI Exposure
 **Severity:** P2 — HIGH  
+**Status:** **RESOLVED**  
 **Category:** Security / Privacy (HIPAA / GDPR / PHI)  
-**File:** [backup_restore_service.dart](file:///g:/Code/health_tracker/lib/services/backup_restore_service.dart#L14-L45), [AndroidManifest.xml](file:///g:/Code/health_tracker/android/app/src/main/AndroidManifest.xml)  
-**Location:** `BackupRestoreService` & `AndroidManifest.xml`  
+**File:** [backup_restore_service.dart](file:///g:/Code/health_tracker/lib/services/backup_restore_service.dart#L14-L95), [AndroidManifest.xml](file:///g:/Code/health_tracker/android/app/src/main/AndroidManifest.xml), [data_extraction_rules.xml](file:///g:/Code/health_tracker/android/app/src/main/res/xml/data_extraction_rules.xml), [database_helper.dart](file:///g:/Code/health_tracker/lib/core/database/database_helper.dart#L240-L380)  
+**Location:** `BackupRestoreService`, `AndroidManifest.xml`, `DatabaseHelper`  
 **Problem:** Backup exports write complete unencrypted patient medical histories (patient names, dates of birth, exact blood pressure readings, glucose readings, medication notes) as raw JSON to a temporary file shared via the system share sheet. Furthermore, `AndroidManifest.xml` does not declare `android:allowBackup="false"` or specify `dataExtractionRules`.  
 **Why it matters:** Android Auto Backup can sync the SQLite database to Google Cloud storage unencrypted. Plaintext JSON files left in temporary caches can be accessed by other applications with storage access on older Android devices.  
 **Recommended solution:**
 1. Configure `android:allowBackup="false"` or define explicit `dataExtractionRules`.
 2. Add a notice in the backup dialog warning the user that the exported file contains unencrypted medical records.
 3. Clean up the temporary export file after sharing completes.  
+**Resolution:**
+1. Declared `android:allowBackup="false"` and `android:fullBackupContent="false"` in `AndroidManifest.xml`, backed by `data_extraction_rules.xml` excluding all cloud and device-transfer extraction.
+2. Implemented a localized security confirmation dialog in `BackupRestoreService.exportBackup` notifying users of unencrypted health data export with "Cancel" and "Export Anyway" choices.
+3. Added a pre-export safety sweep in `getTemporaryDirectory()` and guaranteed immediate cleanup of the exported file in a `finally` block after sharing completes.
+4. Hardened `DatabaseHelper.importFromJson()` to sanitize records, validate schemas/data types, and enforce foreign key integrity against malformed or orphaned items.
 **Risk of fixing:** Low.
 
 ---
@@ -431,8 +437,8 @@ The application uses a 3-tier architecture:
 - [ ] **Crash reporting:** **Missing.** No Firebase Crashlytics or Sentry integration.
 - [ ] **Permissions:** **Review needed.** Release manifest has 0 permissions. Needs offline font bundling or `INTERNET` permission.
 - [ ] **Android configuration:** Compile SDK 34+, Target SDK 34+, Java 17, R8 enabled with ProGuard rules.
-- [ ] **Database migration:** Basic migration logic in place (`version: 3`). Foreign key PRAGMA missing.
-- [ ] **Backup/recovery:** Plaintext JSON export implemented. Missing encryption and auto-backup restrictions.
+- [x] **Database migration:** Basic migration logic in place (`version: 4`). Foreign key PRAGMA enabled.
+- [x] **Backup/recovery:** Plaintext JSON export guarded with user warning dialog, automatic cache cleanup, and Android Auto Backup disabled via data extraction rules (CRIT-12 resolved).
 - [ ] **App icons & Splash screen:** Custom launcher icon configured via `flutter_launcher_icons`.
 
 ---
@@ -453,7 +459,7 @@ The application uses a 3-tier architecture:
 3. **Persist Glucose Unit Preference (`[CRIT-09]`):** Save `'mg/dL'` vs `'mmol/L'` to `SharedPreferences`.
 4. **Guard Post-Async SetState (`[CRIT-10]`):** Add `if (mounted)` checks in `DoctorReportScreen`.
 5. **Fail Release Build on Missing Keystore (`[CRIT-11]`):** [RESOLVED] Remove silent debug fallback in Gradle and validate signing credentials.
-6. **Restrict Cloud Auto Backup (`[CRIT-12]`):** Set `allowBackup="false"` in `AndroidManifest.xml`.
+6. **Restrict Cloud Auto Backup & PHI Exposure (`[CRIT-12]`):** [RESOLVED] Set `allowBackup="false"`, add `data_extraction_rules.xml`, export warning dialog, and cache cleanup.
 
 ### Future Improvements (P3 & P4 Technical Debt)
 1. Add integration tests for database operations and state notifiers.
@@ -479,9 +485,9 @@ The application uses a 3-tier architecture:
 - **CRIT-09:** Non-persistent glucose unit preference.
 - **CRIT-10:** Unhandled async error and unmounted `setState` in doctor report screen.
 - **CRIT-11:** [RESOLVED] Silent release build fallback to debug keystore.
+- **CRIT-12:** [RESOLVED] Plaintext unencrypted health backups & Android Auto Backup PHI exposure.
 
 ### Can Be Deferred
-- **CRIT-12:** Advanced backup encryption (can initially inform user via UI prompt).
 - **CRIT-13:** Test coverage expansion for SQLite in-memory integration.
 - **CRIT-18:** Clean up duplicate l10n directory files.
 - **CRIT-20:** Landscape and tablet multi-column layout optimizations.
