@@ -24,6 +24,9 @@ class DatabaseHelper {
     return await openDatabase(
       path,
       version: 3,
+      onConfigure: (db) async {
+        await db.execute('PRAGMA foreign_keys = ON;');
+      },
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -116,9 +119,9 @@ class DatabaseHelper {
 
   Future<void> deleteMember(String id) async {
     final db = await instance.database;
-    await db.delete('family_members', where: 'id = ?', whereArgs: [id]);
-    await db.delete('bp_readings', where: 'memberId = ?', whereArgs: [id]);
-    await db.delete('glucose_readings', where: 'memberId = ?', whereArgs: [id]);
+    await db.transaction((txn) async {
+      await txn.delete('family_members', where: 'id = ?', whereArgs: [id]);
+    });
   }
 
   // --- Blood Pressure Operations ---
