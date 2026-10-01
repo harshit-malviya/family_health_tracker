@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -9,6 +10,38 @@ import '../models/glucose_reading.dart';
 import '../core/constants/clinical_standards.dart';
 
 class PdfReportService {
+  static pw.Font? _cachedRegularFont;
+  static pw.Font? _cachedBoldFont;
+  static pw.Font? _cachedDevanagariRegular;
+  static pw.Font? _cachedDevanagariBold;
+
+  static Future<pw.ThemeData> _loadTheme() async {
+    if (_cachedRegularFont == null ||
+        _cachedBoldFont == null ||
+        _cachedDevanagariRegular == null ||
+        _cachedDevanagariBold == null) {
+      final regularData = await rootBundle.load('assets/fonts/NotoSans-Regular.ttf');
+      final boldData = await rootBundle.load('assets/fonts/NotoSans-Bold.ttf');
+      final devanagariRegularData =
+          await rootBundle.load('assets/fonts/NotoSansDevanagari-Regular.ttf');
+      final devanagariBoldData =
+          await rootBundle.load('assets/fonts/NotoSansDevanagari-Bold.ttf');
+
+      _cachedRegularFont = pw.Font.ttf(regularData);
+      _cachedBoldFont = pw.Font.ttf(boldData);
+      _cachedDevanagariRegular = pw.Font.ttf(devanagariRegularData);
+      _cachedDevanagariBold = pw.Font.ttf(devanagariBoldData);
+    }
+    return pw.ThemeData.withFont(
+      base: _cachedRegularFont!,
+      bold: _cachedBoldFont!,
+      fontFallback: [
+        _cachedDevanagariRegular!,
+        _cachedDevanagariBold!,
+      ],
+    );
+  }
+
   static Future<Uint8List> generateReport({
     required FamilyMember member,
     required List<BpReading> bpReadings,
@@ -16,7 +49,9 @@ class PdfReportService {
     required String unit,
     required String dateRangeTitle,
   }) async {
-    final pdf = pw.Document();
+    final theme = await _loadTheme();
+    final pdf = pw.Document(theme: theme);
+
 
     // Summary calculations
     double avgSys = 0, avgDia = 0, avgPulse = 0;
