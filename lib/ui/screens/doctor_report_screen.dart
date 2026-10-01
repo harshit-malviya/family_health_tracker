@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:printing/printing.dart';
 import '../../core/constants/app_colors.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/health_providers.dart';
 import '../../services/pdf_report_service.dart';
 import '../widgets/family_member_header.dart';
@@ -19,6 +20,7 @@ class _DoctorReportScreenState extends ConsumerState<DoctorReportScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final member = ref.watch(activeMemberProvider);
     final allBp = ref.watch(bpReadingsProvider).asData?.value ?? [];
     final allGlucose = ref.watch(glucoseReadingsProvider).asData?.value ?? [];
@@ -31,7 +33,7 @@ class _DoctorReportScreenState extends ConsumerState<DoctorReportScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Doctor Consultation Report'),
+        title: Text(l10n.doctorReportTitle),
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(64),
           child: FamilyMemberHeader(),
@@ -68,14 +70,14 @@ class _DoctorReportScreenState extends ConsumerState<DoctorReportScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Physician Summary PDF',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            Text(
+                              l10n.physicianSummaryPdf,
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                             ),
                             Text(
                               member != null
-                                  ? 'Ready to print or share for ${member.name}'
-                                  : 'Select a family member',
+                                  ? l10n.readyToPrintFor(member.name)
+                                  : l10n.selectFamilyMember,
                               style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
                             ),
                           ],
@@ -84,18 +86,18 @@ class _DoctorReportScreenState extends ConsumerState<DoctorReportScreen> {
                     ],
                   ),
                   const SizedBox(height: 20),
-                  const Text(
-                    'Select Time Period:',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  Text(
+                    l10n.selectTimePeriod,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                   ),
                   const SizedBox(height: 10),
                   Wrap(
                     spacing: 8,
                     children: [
-                      _buildRangeChip(7, 'Last 7 Days'),
-                      _buildRangeChip(30, 'Last 30 Days'),
-                      _buildRangeChip(90, 'Last 90 Days'),
-                      _buildRangeChip(365, '1 Year'),
+                      _buildRangeChip(7, l10n.days7),
+                      _buildRangeChip(30, l10n.days30),
+                      _buildRangeChip(90, l10n.days90),
+                      _buildRangeChip(365, l10n.days365),
                     ],
                   ),
                 ],
@@ -114,33 +116,21 @@ class _DoctorReportScreenState extends ConsumerState<DoctorReportScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'What will be included in the PDF:',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  Text(
+                    l10n.includeInReport,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                   const SizedBox(height: 12),
                   _buildInclusionItem(
                     Icons.favorite,
                     AppColors.primary,
-                    '${filteredBp.length} Blood Pressure & Pulse measurements',
+                    '${filteredBp.length} ${l10n.includeBpLogs}',
                   ),
                   const SizedBox(height: 8),
                   _buildInclusionItem(
                     Icons.water_drop,
                     AppColors.secondary,
-                    '${filteredGlucose.length} Blood Sugar measurements ($unit)',
-                  ),
-                  const SizedBox(height: 8),
-                  _buildInclusionItem(
-                    Icons.analytics_outlined,
-                    Colors.purple,
-                    'Statistical averages, Min/Max, and AHA/ADA Stage Distribution',
-                  ),
-                  const SizedBox(height: 8),
-                  _buildInclusionItem(
-                    Icons.medication_outlined,
-                    Colors.teal,
-                    'Medication logs, meal timings, and posture notes',
+                    '${filteredGlucose.length} ${l10n.includeGlucoseLogs} ($unit)',
                   ),
                 ],
               ),
@@ -156,7 +146,7 @@ class _DoctorReportScreenState extends ConsumerState<DoctorReportScreen> {
                       child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                     )
                   : const Icon(Icons.share_rounded),
-              label: Text(_isGenerating ? 'Generating PDF...' : 'Share Report (WhatsApp / Email)'),
+              label: Text(_isGenerating ? l10n.generatingPdf : l10n.printOrSharePdf),
               onPressed: (member == null || _isGenerating)
                   ? null
                   : () async {

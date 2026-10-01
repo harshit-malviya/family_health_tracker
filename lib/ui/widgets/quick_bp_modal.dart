@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import '../../models/bp_reading.dart';
 import '../../core/constants/clinical_standards.dart';
 import '../../core/constants/app_colors.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/health_providers.dart';
 
 class QuickBpModal extends ConsumerStatefulWidget {
@@ -106,6 +107,7 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final member = ref.watch(activeMemberProvider);
     final theme = Theme.of(context);
     final isEditing = widget.initialReading != null;
@@ -144,11 +146,13 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      isEditing ? 'Edit Blood Pressure' : 'Log Blood Pressure',
+                      isEditing ? l10n.editBpTitle : l10n.logBpTitle,
                       style: theme.textTheme.titleLarge?.copyWith(fontSize: 20),
                     ),
                     Text(
-                      member != null ? 'For ${member.name} (${member.relation})' : 'Record reading',
+                      member != null
+                          ? l10n.forMember(member.name, member.relation)
+                          : l10n.recordReading,
                       style: theme.textTheme.bodyMedium,
                     ),
                   ],
@@ -178,7 +182,7 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
                       const Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.primary),
                       const SizedBox(width: 8),
                       Text(
-                        'Date & Time of Reading',
+                        l10n.dateTimeOfReading,
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
@@ -204,7 +208,7 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
                     spacing: 8,
                     children: [
                       ChoiceChip(
-                        label: const Text('Now / Today'),
+                        label: Text(l10n.today),
                         selected: _isToday(_selectedDateTime),
                         selectedColor: AppColors.primaryLight,
                         onSelected: (val) {
@@ -214,7 +218,7 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
                         },
                       ),
                       ChoiceChip(
-                        label: const Text('Yesterday'),
+                        label: Text(l10n.yesterday),
                         selected: _isYesterday(_selectedDateTime),
                         selectedColor: AppColors.primaryLight,
                         onSelected: (val) {
@@ -234,7 +238,7 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
                       ),
                       ActionChip(
                         avatar: const Icon(Icons.edit_calendar, size: 16, color: AppColors.primary),
-                        label: const Text('Pick Date & Time'),
+                        label: Text(l10n.dateTimeOfReading),
                         onPressed: _pickCustomDateTime,
                       ),
                     ],
@@ -262,7 +266,7 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _currentCategory.label,
+                          _currentCategory.localizedLabel(l10n),
                           style: TextStyle(
                             color: _currentCategory.color,
                             fontWeight: FontWeight.bold,
@@ -270,7 +274,7 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
                           ),
                         ),
                         Text(
-                          _currentCategory.rangeHint,
+                          _currentCategory.localizedRangeHint(l10n),
                           style: TextStyle(
                             color: _currentCategory.color.withValues(alpha: 0.85),
                             fontSize: 12,
@@ -291,7 +295,7 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
                   child: _buildNumberInput(
                     controller: _sysController,
                     label: 'SYS',
-                    sublabel: 'mmHg (Top)',
+                    sublabel: l10n.systolicUpper,
                     color: AppColors.primary,
                   ),
                 ),
@@ -300,7 +304,7 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
                   child: _buildNumberInput(
                     controller: _diaController,
                     label: 'DIA',
-                    sublabel: 'mmHg (Bottom)',
+                    sublabel: l10n.diastolicLower,
                     color: AppColors.secondary,
                   ),
                 ),
@@ -309,7 +313,7 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
                   child: _buildNumberInput(
                     controller: _pulseController,
                     label: 'PULSE',
-                    sublabel: 'BPM',
+                    sublabel: l10n.pulseBpm,
                     color: Colors.purple.shade400,
                   ),
                 ),
@@ -322,9 +326,9 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
               children: [
                 Expanded(
                   child: SegmentedButton<String>(
-                    segments: const [
-                      ButtonSegment(value: 'Left', label: Text('Left Arm')),
-                      ButtonSegment(value: 'Right', label: Text('Right Arm')),
+                    segments: [
+                      ButtonSegment(value: 'Left', label: Text(l10n.armLeft)),
+                      ButtonSegment(value: 'Right', label: Text(l10n.armRight)),
                     ],
                     selected: {_selectedArm},
                     onSelectionChanged: (set) => setState(() => _selectedArm = set.first),
@@ -337,10 +341,10 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
               children: [
                 Expanded(
                   child: SegmentedButton<String>(
-                    segments: const [
-                      ButtonSegment(value: 'Sitting', label: Text('Sitting')),
-                      ButtonSegment(value: 'Lying', label: Text('Lying')),
-                      ButtonSegment(value: 'Standing', label: Text('Standing')),
+                    segments: [
+                      ButtonSegment(value: 'Sitting', label: Text(l10n.postureSitting)),
+                      ButtonSegment(value: 'Lying', label: Text(l10n.postureLying)),
+                      ButtonSegment(value: 'Standing', label: Text(l10n.postureStanding)),
                     ],
                     selected: {_selectedPosture},
                     onSelectionChanged: (set) => setState(() => _selectedPosture = set.first),
@@ -353,8 +357,8 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
             // Arrhythmia toggle
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Irregular heartbeat icon shown on machine?'),
-              subtitle: const Text('Check if your monitor displayed an arrhythmia warning symbol'),
+              title: Text(l10n.irregularHeartbeat),
+              subtitle: Text(l10n.notesHintBp),
               value: _hasArrhythmia,
               activeThumbColor: AppColors.primary,
               onChanged: (val) => setState(() => _hasArrhythmia = val),
@@ -364,9 +368,10 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
             // Notes input
             TextField(
               controller: _notesController,
-              decoration: const InputDecoration(
-                labelText: 'Notes (optional, e.g. after morning walk, rested 5 mins)',
-                prefixIcon: Icon(Icons.edit_note),
+              decoration: InputDecoration(
+                labelText: l10n.notesOptional,
+                hintText: l10n.notesHintBp,
+                prefixIcon: const Icon(Icons.edit_note),
               ),
             ),
             const SizedBox(height: 24),
@@ -394,14 +399,6 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
                   );
                   ref.read(bpReadingsProvider.notifier).updateReading(updated);
                   Navigator.pop(context);
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Blood pressure reading updated!'),
-                      backgroundColor: AppColors.secondary,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
                 } else {
                   final reading = BpReading(
                     id: const Uuid().v4(),
@@ -417,17 +414,9 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
                   );
                   ref.read(bpReadingsProvider.notifier).addReading(reading);
                   Navigator.pop(context);
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Blood pressure recorded for ${member.name}!'),
-                      backgroundColor: AppColors.secondary,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
                 }
               },
-              child: Text(isEditing ? 'Update Blood Pressure Reading' : 'Save Blood Pressure Reading'),
+              child: Text(isEditing ? l10n.updateBpReading : l10n.saveBpReading),
             ),
           ],
         ),

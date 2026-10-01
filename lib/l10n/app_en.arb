@@ -1,0 +1,246 @@
+{
+  "@@locale": "en",
+  "appTitle": "Family Health Tracker",
+  "@appTitle": {
+    "description": "Title of the application"
+  },
+  "navDashboard": "Dashboard",
+  "navTrends": "Trends",
+  "navHistory": "History",
+  "navDoctorPdf": "Doctor PDF",
+  "navSettings": "Settings",
+
+  "familyHealth": "Family Health",
+  "dailyRecordsSubtitle": "Daily BP & Blood Sugar records",
+  "yearsOld": "{age} yrs",
+  "@yearsOld": {
+    "placeholders": {
+      "age": {
+        "type": "int"
+      }
+    }
+  },
+
+  "bloodPressure": "Blood Pressure",
+  "bloodSugar": "Blood Sugar / Glucose",
+  "pulse": "Pulse",
+  "bpm": "bpm",
+  "overviewAndAverages": "Overview & Averages",
+  "avgBloodPressure": "Avg Blood Pressure",
+  "avgBloodGlucose": "Avg Blood Glucose",
+  "normalPercent": "{percent}% normal",
+  "@normalPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "inTargetRange": "{inRange}/{total} in target",
+  "@inTargetRange": {
+    "placeholders": {
+      "inRange": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "newReading": "New Reading",
+  "whatMeasuring": "What are you measuring?",
+  "bpAndPulse": "Blood Pressure & Pulse",
+  "bpAndPulseDesc": "Systolic, Diastolic, Heart rate",
+  "bloodSugarDesc": "Fasting, Post-meal, Bedtime",
+
+  "readingsHistory": "Readings History",
+  "filterAll": "All",
+  "filterBp": "BP",
+  "filterGlucose": "Glucose",
+  "noRecordsYet": "No {filter} records for {name} yet.",
+  "@noRecordsYet": {
+    "placeholders": {
+      "filter": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteReadingTitle": "Delete Reading?",
+  "deleteReadingConfirm": "Are you sure you want to permanently delete this reading?",
+  "readingDeleted": "Reading deleted.",
+  "editReading": "Edit Reading",
+  "delete": "Delete",
+  "cancel": "Cancel",
+  "save": "Save",
+
+  "trendsAndAnalytics": "Trends & Analytics",
+  "tabBp": "Blood Pressure",
+  "tabGlucose": "Blood Glucose",
+  "noBpLogs": "No blood pressure logs yet for this member.",
+  "noGlucoseLogs": "No blood glucose logs yet for this member.",
+  "systolicTrend": "Systolic & Diastolic Trend",
+  "morningAvg": "Morning Avg",
+  "eveningAvg": "Evening Avg",
+  "latestTrend": "Latest Trend",
+  "days7Avg": "7-Day Avg",
+  "days30Avg": "30-Day Avg",
+  "timeInRange": "Time in Target Range",
+  "targetRangeHint": "Target: 70 - 180 mg/dL",
+  "readingsCount": "{count} readings logged",
+  "@readingsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "doctorReportTitle": "Doctor Consultation Report",
+  "physicianSummaryPdf": "Physician Summary PDF",
+  "readyToPrintFor": "Ready to print or share for {name}",
+  "@readyToPrintFor": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "selectFamilyMember": "Select a family member",
+  "selectTimePeriod": "Select Time Period:",
+  "days7": "Last 7 Days",
+  "days30": "Last 30 Days",
+  "days90": "Last 90 Days",
+  "days365": "1 Year",
+  "includeInReport": "Include in Report:",
+  "includeBpLogs": "Blood Pressure logs & averages",
+  "includeGlucoseLogs": "Blood Glucose logs & meal context",
+  "printOrSharePdf": "Print / Share PDF Report",
+  "previewPdf": "Preview Doctor PDF",
+  "generatingPdf": "Generating PDF...",
+  "noRecordsPeriod": "No records found for the selected time period.",
+
+  "settingsTitle": "Settings & Backup",
+  "clinicalPreferences": "Clinical Preferences",
+  "glucoseUnitTitle": "Blood Glucose Unit",
+  "glucoseUnitUsIndia": "US / India standard (mg/dL)",
+  "glucoseUnitIntl": "International standard (mmol/L)",
+  "languageSectionTitle": "Language / भाषा",
+  "languageSubtitle": "App display language (ऐप की भाषा)",
+  "languageEnglish": "English",
+  "languageHindi": "हिंदी (Hindi)",
+  "dataBackupPortability": "Data Backup & Portability",
+  "exportHealthRecords": "Export Health Records",
+  "exportHealthRecordsSubtitle": "Save JSON backup file or share to Google Drive / WhatsApp",
+  "restoreFromBackup": "Restore from Backup",
+  "restoreFromBackupSubtitle": "Import backup by selecting a .json file",
+  "familyProfiles": "Family Profiles",
+  "addNewMember": "Add Family Member",
+  "editProfile": "Edit Profile",
+  "deleteProfile": "Delete Profile",
+  "deleteProfileConfirm": "Are you sure you want to delete {name}? All associated health readings will be permanently removed.",
+  "@deleteProfileConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "cannotDeleteLast": "Cannot delete the only family profile.",
+  "profileUpdated": "Profile updated!",
+  "profileCreated": "Profile created!",
+  "profileDeleted": "Profile deleted.",
+  "backupSuccess": "Backup exported successfully!",
+  "restoreSuccess": "Data restored successfully!",
+
+  "welcomeTitle": "Family Health Tracker",
+  "welcomeSubtitle": "Track blood pressure and blood sugar for you and your family in one private, secure place.",
+  "setupFirstProfile": "Set up your first family profile",
+  "memberName": "Member Name",
+  "memberNameHint": "e.g. Papa, Maa, Rahul, Self",
+  "relationship": "Relationship",
+  "dateOfBirth": "Date of Birth",
+  "chooseColorAvatar": "Choose Avatar & Theme Color",
+  "getStarted": "Get Started",
+  "orRestoreBackup": "Already have a backup? Restore here",
+
+  "logBpTitle": "Log Blood Pressure",
+  "editBpTitle": "Edit Blood Pressure",
+  "forMember": "For {name} ({relation})",
+  "@forMember": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "relation": {
+        "type": "String"
+      }
+    }
+  },
+  "recordReading": "Record reading",
+  "dateTimeOfReading": "Date & Time of Reading",
+  "systolic": "Systolic",
+  "diastolic": "Diastolic",
+  "systolicUpper": "Systolic (Upper)",
+  "diastolicLower": "Diastolic (Lower)",
+  "pulseBpm": "Pulse (bpm)",
+  "armMeasured": "Arm Measured",
+  "armLeft": "Left Arm",
+  "armRight": "Right Arm",
+  "bodyPosture": "Body Posture",
+  "postureSitting": "Sitting",
+  "postureLying": "Lying down",
+  "postureStanding": "Standing",
+  "irregularHeartbeat": "Irregular Heartbeat detected",
+  "notesOptional": "Notes (Optional)",
+  "notesHintBp": "e.g. after 10 min rest, felt dizzy, morning",
+  "saveBpReading": "Save BP Reading",
+  "updateBpReading": "Update BP Reading",
+
+  "logGlucoseTitle": "Log Blood Sugar",
+  "editGlucoseTitle": "Edit Blood Sugar",
+  "glucoseValue": "Blood Sugar Value",
+  "timingMealContext": "Timing / Meal Context",
+  "saveGlucoseReading": "Save Sugar Reading",
+  "updateGlucoseReading": "Update Sugar Reading",
+  "notesHintGlucose": "e.g. after festive meal, took medicine",
+
+  "mealFasting": "Fasting",
+  "mealBeforeMeal": "Before Meal",
+  "mealPostMeal": "After Meal (2h)",
+  "mealBedtime": "Bedtime",
+  "mealRandom": "Random",
+  "mealFastingHint": "Before any morning food",
+  "mealBeforeMealHint": "Pre-lunch or dinner",
+  "mealPostMealHint": "2 hours after eating",
+  "mealBedtimeHint": "Before going to sleep",
+  "mealRandomHint": "Any other time",
+
+  "bpNormal": "Normal",
+  "bpNormalHint": "Under 120/80 mmHg",
+  "bpElevated": "Elevated",
+  "bpElevatedHint": "120-129 / <80 mmHg",
+  "bpStage1": "Hypertension Stage 1",
+  "bpStage1Hint": "130-139 / 80-89 mmHg",
+  "bpStage2": "Hypertension Stage 2",
+  "bpStage2Hint": "140+ / 90+ mmHg",
+  "bpCrisis": "Hypertensive Crisis",
+  "bpCrisisHint": "Higher than 180 and/or 120",
+
+  "glucoseLow": "Low (Hypo)",
+  "glucoseLowHint": "Under 70 mg/dL",
+  "glucoseNormal": "Target Range",
+  "glucoseNormalHint": "70-130 mg/dL fasting, <180 post-meal",
+  "glucoseElevated": "Elevated",
+  "glucoseElevatedHint": "131-180 mg/dL fasting",
+  "glucoseHigh": "High (Hyper)",
+  "glucoseHighHint": "Above 180 mg/dL",
+
+  "today": "Today",
+  "yesterday": "Yesterday",
+  "now": "Now",
+  "switchMember": "Switch Member",
+  "manageProfiles": "Manage Profiles"
+}

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/constants/app_colors.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/family_member.dart';
 import '../../providers/health_providers.dart';
 import '../../services/backup_restore_service.dart';
@@ -106,10 +107,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final membersAsync = ref.watch(familyMembersProvider);
     final members = membersAsync.asData?.value ?? [];
     final hasMembers = members.isNotEmpty;
-    final ageStr = _selectedDob != null ? '${_calculateAge(_selectedDob!)} years old' : '';
+    final ageStr = _selectedDob != null ? l10n.yearsOld(_calculateAge(_selectedDob!)) : '';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -147,20 +149,20 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    const Text(
-                      'Family Health Tracker',
+                    Text(
+                      l10n.welcomeTitle,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
                         color: AppColors.textDark,
                       ),
                     ),
                     const SizedBox(height: 6),
-                    const Text(
-                      'Track Blood Pressure & Blood Sugar records for your whole family in one private, offline place.',
+                    Text(
+                      l10n.welcomeSubtitle,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 14,
                         color: AppColors.textMuted,
                         height: 1.4,
@@ -204,10 +206,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                     ),
                                   ),
                                   const SizedBox(width: 12),
-                                  const Expanded(
+                                  Expanded(
                                     child: Text(
-                                      'Create Your First Profile',
-                                      style: TextStyle(
+                                      l10n.setupFirstProfile,
+                                      style: const TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
                                         color: AppColors.textDark,
@@ -216,23 +218,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 8),
-                              const Text(
-                                'You must add at least one member profile to start recording measurements.',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: AppColors.textMuted,
-                                ),
-                              ),
                               const SizedBox(height: 20),
 
                               // Name Field
                               TextField(
                                 controller: _nameController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Full Name / Nickname',
-                                  hintText: 'e.g. Maa, Pita ji, Dada ji, etc.',
-                                  prefixIcon: Icon(Icons.person_outline),
+                                decoration: InputDecoration(
+                                  labelText: l10n.memberName,
+                                  hintText: l10n.memberNameHint,
+                                  prefixIcon: const Icon(Icons.person_outline),
                                 ),
                               ),
                               const SizedBox(height: 14),
@@ -240,18 +234,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                               // Relationship Field (Defaults to 'Self')
                               TextField(
                                 controller: _relationController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Relationship / Role',
+                                decoration: InputDecoration(
+                                  labelText: l10n.relationship,
                                   hintText: 'e.g. Self, Father, Mother',
-                                  prefixIcon: Icon(Icons.people_outline),
+                                  prefixIcon: const Icon(Icons.people_outline),
                                 ),
                               ),
                               const SizedBox(height: 16),
 
                               // Date of Birth Field
-                              const Text(
-                                'Date of Birth:',
-                                style: TextStyle(
+                              Text(
+                                '${l10n.dateOfBirth}:',
+                                style: const TextStyle(
                                   fontWeight: FontWeight.w700,
                                   fontSize: 13,
                                   color: AppColors.textDark,
@@ -302,9 +296,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                               const SizedBox(height: 18),
 
                               // Avatar Emoji Selector
-                              const Text(
-                                'Choose Avatar:',
-                                style: TextStyle(
+                              Text(
+                                l10n.chooseColorAvatar,
+                                style: const TextStyle(
                                   fontWeight: FontWeight.w700,
                                   fontSize: 13,
                                   color: AppColors.textDark,
@@ -327,15 +321,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                               const SizedBox(height: 18),
 
                               // Color Accent Selector
-                              const Text(
-                                'Profile Accent Color:',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 13,
-                                  color: AppColors.textDark,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
                               Wrap(
                                 spacing: 10,
                                 runSpacing: 8,
@@ -361,7 +346,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                 child: ElevatedButton.icon(
                                   onPressed: _saveFirstProfile,
                                   icon: const Icon(Icons.check_circle_outline),
-                                  label: const Text('Save Profile'),
+                                  label: Text(l10n.getStarted),
                                   style: ElevatedButton.styleFrom(
                                     padding: const EdgeInsets.symmetric(vertical: 16),
                                     textStyle: const TextStyle(

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/health_providers.dart';
+import '../../providers/locale_provider.dart';
 import '../../services/backup_restore_service.dart';
 import '../widgets/member_form_dialog.dart';
 
@@ -11,25 +13,48 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final unit = ref.watch(glucoseUnitProvider);
     final membersAsync = ref.watch(familyMembersProvider);
+    final locale = ref.watch(localeProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings & Backup'),
+        title: Text(l10n.settingsTitle),
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
+          // Language Selection Section
+          _buildSectionHeader(l10n.languageSectionTitle),
+          _buildCardSection(
+            child: ListTile(
+              leading: const Icon(Icons.language_rounded, color: AppColors.primary),
+              title: Text(l10n.languageSectionTitle, style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text(l10n.languageSubtitle),
+              trailing: SegmentedButton<String>(
+                segments: [
+                  ButtonSegment(value: 'en', label: Text(l10n.languageEnglish)),
+                  ButtonSegment(value: 'hi', label: Text(l10n.languageHindi)),
+                ],
+                selected: {locale.languageCode},
+                onSelectionChanged: (set) {
+                  ref.read(localeProvider.notifier).setLocale(Locale(set.first));
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
           // Units Section
-          _buildSectionHeader('Clinical Preferences'),
+          _buildSectionHeader(l10n.clinicalPreferences),
           _buildCardSection(
             child: Column(
               children: [
                 ListTile(
                   leading: const Icon(Icons.speed, color: AppColors.secondary),
-                  title: const Text('Blood Glucose Unit', style: TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text(unit == 'mg/dL' ? 'US / India standard (mg/dL)' : 'International standard (mmol/L)'),
+                  title: Text(l10n.glucoseUnitTitle, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text(unit == 'mg/dL' ? l10n.glucoseUnitUsIndia : l10n.glucoseUnitIntl),
                   trailing: SegmentedButton<String>(
                     segments: const [
                       ButtonSegment(value: 'mg/dL', label: Text('mg/dL')),
@@ -47,22 +72,22 @@ class SettingsScreen extends ConsumerWidget {
           const SizedBox(height: 24),
 
           // Backup & Restore Section
-          _buildSectionHeader('Data Backup & Portability'),
+          _buildSectionHeader(l10n.dataBackupPortability),
           _buildCardSection(
             child: Column(
               children: [
                 ListTile(
                   leading: const Icon(Icons.cloud_upload_outlined, color: Colors.blue),
-                  title: const Text('Export Health Records', style: TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: const Text('Save JSON backup file or share to Google Drive / WhatsApp'),
+                  title: Text(l10n.exportHealthRecords, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text(l10n.exportHealthRecordsSubtitle),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                   onTap: () => BackupRestoreService.exportBackup(context, ref),
                 ),
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.cloud_download_outlined, color: Colors.green),
-                  title: const Text('Restore from Backup', style: TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: const Text('Import backup by selecting a .json file'),
+                  title: Text(l10n.restoreFromBackup, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text(l10n.restoreFromBackupSubtitle),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                   onTap: () => BackupRestoreService.restoreBackupFromFile(context, ref),
                 ),
@@ -72,7 +97,7 @@ class SettingsScreen extends ConsumerWidget {
           const SizedBox(height: 24),
 
           // Family Members Management Section
-          _buildSectionHeader('Family Profiles'),
+          _buildSectionHeader(l10n.familyProfiles),
           _buildCardSection(
             child: membersAsync.when(
               loading: () => const Padding(
@@ -94,8 +119,8 @@ class SettingsScreen extends ConsumerWidget {
                       itemBuilder: (context, index) {
                         final m = members[index];
                         final dobSubtitle = m.dateOfBirth != null
-                            ? '${m.relation} • Born ${DateFormat('MMM d, yyyy').format(m.dateOfBirth!)} (${m.age} yrs)'
-                            : '${m.relation} • ${m.age} yrs';
+                            ? '${m.relation} • Born ${DateFormat('MMM d, yyyy').format(m.dateOfBirth!)} (${l10n.yearsOld(m.age)})'
+                            : '${m.relation} • ${l10n.yearsOld(m.age)}';
 
                         return ListTile(
                           leading: Text(m.avatarEmoji, style: const TextStyle(fontSize: 26)),
@@ -107,15 +132,38 @@ class SettingsScreen extends ConsumerWidget {
                             children: [
                               IconButton(
                                 icon: const Icon(Icons.edit_outlined, size: 20, color: AppColors.primary),
-                                tooltip: 'Edit Profile',
+                                tooltip: l10n.editProfile,
                                 onPressed: () => MemberFormDialog.show(context, initialMember: m),
                               ),
                               if (members.length > 1) ...[
                                 IconButton(
                                   icon: const Icon(Icons.delete_outline, size: 20, color: Colors.grey),
-                                  tooltip: 'Delete Profile',
-                                  onPressed: () {
-                                    ref.read(familyMembersProvider.notifier).deleteMember(m.id);
+                                  tooltip: l10n.deleteProfile,
+                                  onPressed: () async {
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder: (ctx) => AlertDialog(
+                                        title: Text(l10n.deleteProfile),
+                                        content: Text(l10n.deleteProfileConfirm(m.name)),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(ctx, false),
+                                            child: Text(l10n.cancel),
+                                          ),
+                                          ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.redAccent,
+                                              minimumSize: const Size(80, 40),
+                                            ),
+                                            onPressed: () => Navigator.pop(ctx, true),
+                                            child: Text(l10n.delete),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                    if (confirm == true) {
+                                      ref.read(familyMembersProvider.notifier).deleteMember(m.id);
+                                    }
                                   },
                                 ),
                               ],
@@ -134,9 +182,9 @@ class SettingsScreen extends ConsumerWidget {
                         ),
                         child: const Icon(Icons.add, color: AppColors.primary, size: 20),
                       ),
-                      title: const Text(
-                        'Add Family Member',
-                        style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
+                      title: Text(
+                        l10n.addNewMember,
+                        style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
                       ),
                       trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.primary),
                       onTap: () => MemberFormDialog.show(context),

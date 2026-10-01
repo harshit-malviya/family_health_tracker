@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/health_providers.dart';
 import '../../core/constants/app_colors.dart';
 import 'member_form_dialog.dart';
@@ -9,6 +10,7 @@ class FamilyMemberHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final membersAsync = ref.watch(familyMembersProvider);
     final selectedId = ref.watch(selectedMemberIdProvider);
 
@@ -28,7 +30,7 @@ class FamilyMemberHeader extends ConsumerWidget {
                 // Add Member Button
                 return ActionChip(
                   avatar: const Icon(Icons.add, size: 20, color: AppColors.primary),
-                  label: const Text('Add Member'),
+                  label: Text(l10n?.addNewMember ?? 'Add Member'),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(24),
                     side: BorderSide(color: AppColors.primary.withValues(alpha: 0.3)),

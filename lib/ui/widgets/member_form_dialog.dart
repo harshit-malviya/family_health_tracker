@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
-import '../../models/family_member.dart';
 import '../../core/constants/app_colors.dart';
+import '../../l10n/app_localizations.dart';
+import '../../models/family_member.dart';
 import '../../providers/health_providers.dart';
 
 class MemberFormDialog extends ConsumerStatefulWidget {
@@ -79,7 +80,7 @@ class _MemberFormDialogState extends ConsumerState<MemberFormDialog> {
     final picked = await showDatePicker(
       context: context,
       initialDate: initialDate.isAfter(now) ? now : initialDate,
-      firstDate: DateTime(now.year - 125, 1, 1), // Up to 125 years back
+      firstDate: DateTime(now.year - 125, 1, 1),
       lastDate: now,
       helpText: 'Select Date of Birth',
     );
@@ -91,13 +92,14 @@ class _MemberFormDialogState extends ConsumerState<MemberFormDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isEditing = widget.initialMember != null;
-    final ageStr = _selectedDob != null ? '${_calculateAge(_selectedDob!)} years old' : '';
+    final ageStr = _selectedDob != null ? l10n.yearsOld(_calculateAge(_selectedDob!)) : '';
 
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       title: Text(
-        isEditing ? 'Edit Family Member' : 'Add Family Member',
+        isEditing ? l10n.editProfile : l10n.addNewMember,
         style: const TextStyle(fontWeight: FontWeight.bold),
       ),
       content: SingleChildScrollView(
@@ -108,10 +110,10 @@ class _MemberFormDialogState extends ConsumerState<MemberFormDialog> {
             // Name Field
             TextField(
               controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Name',
-                hintText: 'e.g. Dad, Mom, Grandpa',
-                prefixIcon: Icon(Icons.person_outline),
+              decoration: InputDecoration(
+                labelText: l10n.memberName,
+                hintText: l10n.memberNameHint,
+                prefixIcon: const Icon(Icons.person_outline),
               ),
             ),
             const SizedBox(height: 14),
@@ -119,18 +121,18 @@ class _MemberFormDialogState extends ConsumerState<MemberFormDialog> {
             // Relationship Field
             TextField(
               controller: _relationController,
-              decoration: const InputDecoration(
-                labelText: 'Relationship / Role',
+              decoration: InputDecoration(
+                labelText: l10n.relationship,
                 hintText: 'e.g. Father, Mother, Self',
-                prefixIcon: Icon(Icons.people_outline),
+                prefixIcon: const Icon(Icons.people_outline),
               ),
             ),
             const SizedBox(height: 16),
 
             // Date of Birth Field
-            const Text(
-              'Date of Birth:',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.textDark),
+            Text(
+              '${l10n.dateOfBirth}:',
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.textDark),
             ),
             const SizedBox(height: 6),
             InkWell(
@@ -154,7 +156,7 @@ class _MemberFormDialogState extends ConsumerState<MemberFormDialog> {
                           Text(
                             _selectedDob != null
                                 ? DateFormat('MMMM d, yyyy').format(_selectedDob!)
-                                : 'Select Date of Birth',
+                                : l10n.dateOfBirth,
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                           ),
                           if (ageStr.isNotEmpty)
@@ -177,9 +179,9 @@ class _MemberFormDialogState extends ConsumerState<MemberFormDialog> {
             const SizedBox(height: 18),
 
             // Avatar Emoji Selector
-            const Text(
-              'Choose Avatar:',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.textDark),
+            Text(
+              l10n.chooseColorAvatar,
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.textDark),
             ),
             const SizedBox(height: 8),
             Wrap(
@@ -198,11 +200,6 @@ class _MemberFormDialogState extends ConsumerState<MemberFormDialog> {
             const SizedBox(height: 18),
 
             // Color Palette Selector
-            const Text(
-              'Profile Accent Color:',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.textDark),
-            ),
-            const SizedBox(height: 8),
             Wrap(
               spacing: 10,
               runSpacing: 8,
@@ -224,7 +221,7 @@ class _MemberFormDialogState extends ConsumerState<MemberFormDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         ElevatedButton(
           onPressed: () {
@@ -245,14 +242,6 @@ class _MemberFormDialogState extends ConsumerState<MemberFormDialog> {
               );
               ref.read(familyMembersProvider.notifier).updateMember(updated);
               Navigator.pop(context);
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('${updated.name}\'s profile updated!'),
-                  backgroundColor: AppColors.secondary,
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
             } else {
               final newMember = FamilyMember(
                 id: const Uuid().v4(),
@@ -265,17 +254,9 @@ class _MemberFormDialogState extends ConsumerState<MemberFormDialog> {
               ref.read(familyMembersProvider.notifier).addMember(newMember);
               ref.read(selectedMemberIdProvider.notifier).select(newMember.id);
               Navigator.pop(context);
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('${newMember.name} added to family profiles!'),
-                  backgroundColor: AppColors.secondary,
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
             }
           },
-          child: Text(isEditing ? 'Save Changes' : 'Add Member'),
+          child: Text(isEditing ? l10n.save : l10n.addNewMember),
         ),
       ],
     );

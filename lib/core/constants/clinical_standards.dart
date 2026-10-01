@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import 'app_colors.dart';
 
 enum BpCategory {
@@ -14,6 +15,30 @@ enum BpCategory {
   const BpCategory(this.label, this.rangeHint, this.color);
 }
 
+extension BpCategoryLocalization on BpCategory {
+  String localizedLabel(AppLocalizations? l10n) {
+    if (l10n == null) return label;
+    switch (this) {
+      case BpCategory.normal: return l10n.bpNormal;
+      case BpCategory.elevated: return l10n.bpElevated;
+      case BpCategory.stage1: return l10n.bpStage1;
+      case BpCategory.stage2: return l10n.bpStage2;
+      case BpCategory.crisis: return l10n.bpCrisis;
+    }
+  }
+
+  String localizedRangeHint(AppLocalizations? l10n) {
+    if (l10n == null) return rangeHint;
+    switch (this) {
+      case BpCategory.normal: return l10n.bpNormalHint;
+      case BpCategory.elevated: return l10n.bpElevatedHint;
+      case BpCategory.stage1: return l10n.bpStage1Hint;
+      case BpCategory.stage2: return l10n.bpStage2Hint;
+      case BpCategory.crisis: return l10n.bpCrisisHint;
+    }
+  }
+}
+
 enum GlucoseCategory {
   low('Low (Hypo)', 'Under 70 mg/dL', AppColors.glucoseLow),
   normal('Target Range', '70-130 mg/dL fasting, <180 post-meal', AppColors.glucoseNormal),
@@ -26,6 +51,28 @@ enum GlucoseCategory {
   const GlucoseCategory(this.label, this.rangeHint, this.color);
 }
 
+extension GlucoseCategoryLocalization on GlucoseCategory {
+  String localizedLabel(AppLocalizations? l10n) {
+    if (l10n == null) return label;
+    switch (this) {
+      case GlucoseCategory.low: return l10n.glucoseLow;
+      case GlucoseCategory.normal: return l10n.glucoseNormal;
+      case GlucoseCategory.elevated: return l10n.glucoseElevated;
+      case GlucoseCategory.high: return l10n.glucoseHigh;
+    }
+  }
+
+  String localizedRangeHint(AppLocalizations? l10n) {
+    if (l10n == null) return rangeHint;
+    switch (this) {
+      case GlucoseCategory.low: return l10n.glucoseLowHint;
+      case GlucoseCategory.normal: return l10n.glucoseNormalHint;
+      case GlucoseCategory.elevated: return l10n.glucoseElevatedHint;
+      case GlucoseCategory.high: return l10n.glucoseHighHint;
+    }
+  }
+}
+
 enum MealContext {
   fasting('Fasting', 'Before any morning food'),
   beforeMeal('Before Meal', 'Pre-lunch or dinner'),
@@ -36,6 +83,30 @@ enum MealContext {
   final String label;
   final String hint;
   const MealContext(this.label, this.hint);
+}
+
+extension MealContextLocalization on MealContext {
+  String localizedLabel(AppLocalizations? l10n) {
+    if (l10n == null) return label;
+    switch (this) {
+      case MealContext.fasting: return l10n.mealFasting;
+      case MealContext.beforeMeal: return l10n.mealBeforeMeal;
+      case MealContext.postMeal: return l10n.mealPostMeal;
+      case MealContext.bedtime: return l10n.mealBedtime;
+      case MealContext.random: return l10n.mealRandom;
+    }
+  }
+
+  String localizedHint(AppLocalizations? l10n) {
+    if (l10n == null) return hint;
+    switch (this) {
+      case MealContext.fasting: return l10n.mealFastingHint;
+      case MealContext.beforeMeal: return l10n.mealBeforeMealHint;
+      case MealContext.postMeal: return l10n.mealPostMealHint;
+      case MealContext.bedtime: return l10n.mealBedtimeHint;
+      case MealContext.random: return l10n.mealRandomHint;
+    }
+  }
 }
 
 class ClinicalStandards {

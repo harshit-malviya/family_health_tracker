@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
+import '../../l10n/app_localizations.dart';
 import 'dashboard_screen.dart';
 import 'analytics_screen.dart';
 import 'history_screen.dart';
@@ -26,6 +27,8 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
@@ -48,31 +51,31 @@ class _HomeShellState extends State<HomeShell> {
           indicatorColor: AppColors.primaryLight,
           elevation: 0,
           onDestinationSelected: (idx) => setState(() => _currentIndex = idx),
-          destinations: const [
+          destinations: [
             NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home, color: AppColors.primary),
-              label: 'Dashboard',
+              icon: const Icon(Icons.home_outlined),
+              selectedIcon: const Icon(Icons.home, color: AppColors.primary),
+              label: l10n.navDashboard,
             ),
             NavigationDestination(
-              icon: Icon(Icons.show_chart_outlined),
-              selectedIcon: Icon(Icons.show_chart, color: AppColors.primary),
-              label: 'Trends',
+              icon: const Icon(Icons.show_chart_outlined),
+              selectedIcon: const Icon(Icons.show_chart, color: AppColors.primary),
+              label: l10n.navTrends,
             ),
             NavigationDestination(
-              icon: Icon(Icons.history_outlined),
-              selectedIcon: Icon(Icons.history, color: AppColors.primary),
-              label: 'History',
+              icon: const Icon(Icons.history_outlined),
+              selectedIcon: const Icon(Icons.history, color: AppColors.primary),
+              label: l10n.navHistory,
             ),
             NavigationDestination(
-              icon: Icon(Icons.medical_services_outlined),
-              selectedIcon: Icon(Icons.medical_services, color: AppColors.primary),
-              label: 'Doctor PDF',
+              icon: const Icon(Icons.medical_services_outlined),
+              selectedIcon: const Icon(Icons.medical_services, color: AppColors.primary),
+              label: l10n.navDoctorPdf,
             ),
             NavigationDestination(
-              icon: Icon(Icons.settings_outlined),
-              selectedIcon: Icon(Icons.settings, color: AppColors.primary),
-              label: 'Settings',
+              icon: const Icon(Icons.settings_outlined),
+              selectedIcon: const Icon(Icons.settings, color: AppColors.primary),
+              label: l10n.navSettings,
             ),
           ],
         ),

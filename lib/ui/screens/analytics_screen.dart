@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/bp_reading.dart';
 import '../../models/glucose_reading.dart';
 import '../../providers/health_providers.dart';
@@ -32,13 +33,14 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final bpReadings = ref.watch(bpReadingsProvider).asData?.value ?? [];
     final glucoseReadings = ref.watch(glucoseReadingsProvider).asData?.value ?? [];
     final unit = ref.watch(glucoseUnitProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Trends & Analytics'),
+        title: Text(l10n.trendsAndAnalytics),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(124),
           child: Column(
@@ -51,9 +53,9 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
                 labelColor: AppColors.primary,
                 unselectedLabelColor: AppColors.textMuted,
                 labelStyle: const TextStyle(fontWeight: FontWeight.bold),
-                tabs: const [
-                  Tab(icon: Icon(Icons.favorite, size: 20), text: 'Blood Pressure'),
-                  Tab(icon: Icon(Icons.water_drop, size: 20), text: 'Blood Glucose'),
+                tabs: [
+                  Tab(icon: const Icon(Icons.favorite, size: 20), text: l10n.tabBp),
+                  Tab(icon: const Icon(Icons.water_drop, size: 20), text: l10n.tabGlucose),
                 ],
               ),
             ],
@@ -73,9 +75,10 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
   }
 
   Widget _buildBpAnalytics(List<BpReading> bpReadings) {
+    final l10n = AppLocalizations.of(context)!;
     if (bpReadings.isEmpty) {
-      return const Center(
-        child: Text('No blood pressure logs yet for this member.'),
+      return Center(
+        child: Text(l10n.noBpLogs),
       );
     }
 
@@ -128,9 +131,9 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'BP Timeline (Last Readings)',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    Text(
+                      l10n.systolicTrend,
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     Row(
                       children: [
@@ -314,7 +317,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
             children: [
               Expanded(
                 child: _buildPatternCard(
-                  title: 'Morning SYS Avg',
+                  title: l10n.morningAvg,
                   value: morningAvg,
                   unit: 'mmHg',
                   icon: Icons.wb_sunny_rounded,
@@ -325,7 +328,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
               const SizedBox(width: 14),
               Expanded(
                 child: _buildPatternCard(
-                  title: 'Evening SYS Avg',
+                  title: l10n.eveningAvg,
                   value: eveningAvg,
                   unit: 'mmHg',
                   icon: Icons.nights_stay_rounded,
@@ -341,9 +344,10 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
   }
 
   Widget _buildGlucoseAnalytics(List<GlucoseReading> glucoseReadings, String unit) {
+    final l10n = AppLocalizations.of(context)!;
     if (glucoseReadings.isEmpty) {
-      return const Center(
-        child: Text('No blood glucose logs yet for this member.'),
+      return Center(
+        child: Text(l10n.noGlucoseLogs),
       );
     }
 
@@ -375,10 +379,10 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Glucose Curve ($unit)',
+                      '${l10n.tabGlucose} ($unit)',
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
-                    _buildLegend(color: AppColors.secondary, label: 'Blood Sugar'),
+                    _buildLegend(color: AppColors.secondary, label: l10n.bloodSugar),
                   ],
                 ),
                 const SizedBox(height: 24),

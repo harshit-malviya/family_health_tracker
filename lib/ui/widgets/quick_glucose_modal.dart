@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
-import '../../models/glucose_reading.dart';
-import '../../core/constants/clinical_standards.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/clinical_standards.dart';
+import '../../l10n/app_localizations.dart';
+import '../../models/glucose_reading.dart';
 import '../../providers/health_providers.dart';
 
 class QuickGlucoseModal extends ConsumerStatefulWidget {
@@ -107,6 +108,7 @@ class _QuickGlucoseModalState extends ConsumerState<QuickGlucoseModal> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final member = ref.watch(activeMemberProvider);
     final unit = ref.watch(glucoseUnitProvider);
     final theme = Theme.of(context);
@@ -146,11 +148,13 @@ class _QuickGlucoseModalState extends ConsumerState<QuickGlucoseModal> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      isEditing ? 'Edit Blood Sugar' : 'Log Blood Sugar',
+                      isEditing ? l10n.editGlucoseTitle : l10n.logGlucoseTitle,
                       style: theme.textTheme.titleLarge?.copyWith(fontSize: 20),
                     ),
                     Text(
-                      member != null ? 'For ${member.name} (${member.relation})' : 'Record reading',
+                      member != null
+                          ? l10n.forMember(member.name, member.relation)
+                          : l10n.recordReading,
                       style: theme.textTheme.bodyMedium,
                     ),
                   ],
@@ -180,7 +184,7 @@ class _QuickGlucoseModalState extends ConsumerState<QuickGlucoseModal> {
                       const Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.secondary),
                       const SizedBox(width: 8),
                       Text(
-                        'Date & Time of Reading',
+                        l10n.dateTimeOfReading,
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
@@ -206,7 +210,7 @@ class _QuickGlucoseModalState extends ConsumerState<QuickGlucoseModal> {
                     spacing: 8,
                     children: [
                       ChoiceChip(
-                        label: const Text('Now / Today'),
+                        label: Text(l10n.today),
                         selected: _isToday(_selectedDateTime),
                         selectedColor: AppColors.secondaryLight,
                         onSelected: (val) {
@@ -216,7 +220,7 @@ class _QuickGlucoseModalState extends ConsumerState<QuickGlucoseModal> {
                         },
                       ),
                       ChoiceChip(
-                        label: const Text('Yesterday'),
+                        label: Text(l10n.yesterday),
                         selected: _isYesterday(_selectedDateTime),
                         selectedColor: AppColors.secondaryLight,
                         onSelected: (val) {
@@ -236,7 +240,7 @@ class _QuickGlucoseModalState extends ConsumerState<QuickGlucoseModal> {
                       ),
                       ActionChip(
                         avatar: const Icon(Icons.edit_calendar, size: 16, color: AppColors.secondary),
-                        label: const Text('Pick Date & Time'),
+                        label: Text(l10n.dateTimeOfReading),
                         onPressed: _pickCustomDateTime,
                       ),
                     ],
@@ -264,7 +268,7 @@ class _QuickGlucoseModalState extends ConsumerState<QuickGlucoseModal> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _currentCategory.label,
+                          _currentCategory.localizedLabel(l10n),
                           style: TextStyle(
                             color: _currentCategory.color,
                             fontWeight: FontWeight.bold,
@@ -272,7 +276,7 @@ class _QuickGlucoseModalState extends ConsumerState<QuickGlucoseModal> {
                           ),
                         ),
                         Text(
-                          _currentCategory.rangeHint,
+                          _currentCategory.localizedRangeHint(l10n),
                           style: TextStyle(
                             color: _currentCategory.color.withValues(alpha: 0.85),
                             fontSize: 12,
@@ -353,9 +357,9 @@ class _QuickGlucoseModalState extends ConsumerState<QuickGlucoseModal> {
             const SizedBox(height: 20),
 
             // Meal Context Chips
-            const Text(
-              'When was this measured?',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+            Text(
+              l10n.timingMealContext,
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
             ),
             const SizedBox(height: 10),
             Wrap(
@@ -364,7 +368,7 @@ class _QuickGlucoseModalState extends ConsumerState<QuickGlucoseModal> {
               children: MealContext.values.map((ctx) {
                 final isSelected = ctx == _selectedMealContext;
                 return ChoiceChip(
-                  label: Text(ctx.label),
+                  label: Text(ctx.localizedLabel(l10n)),
                   selected: isSelected,
                   selectedColor: AppColors.secondaryLight,
                   labelStyle: TextStyle(
@@ -385,9 +389,10 @@ class _QuickGlucoseModalState extends ConsumerState<QuickGlucoseModal> {
             // Medication & Food notes
             TextField(
               controller: _medsController,
-              decoration: const InputDecoration(
-                labelText: 'Medication / Meal notes (optional, e.g. Metformin 500mg)',
-                prefixIcon: Icon(Icons.medication),
+              decoration: InputDecoration(
+                labelText: l10n.notesOptional,
+                hintText: l10n.notesHintGlucose,
+                prefixIcon: const Icon(Icons.medication),
               ),
             ),
             const SizedBox(height: 24),
@@ -413,14 +418,6 @@ class _QuickGlucoseModalState extends ConsumerState<QuickGlucoseModal> {
                   );
                   ref.read(glucoseReadingsProvider.notifier).updateReading(updated);
                   Navigator.pop(context);
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Blood glucose reading updated!'),
-                      backgroundColor: AppColors.secondary,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
                 } else {
                   final reading = GlucoseReading(
                     id: const Uuid().v4(),
@@ -433,17 +430,9 @@ class _QuickGlucoseModalState extends ConsumerState<QuickGlucoseModal> {
 
                   ref.read(glucoseReadingsProvider.notifier).addReading(reading);
                   Navigator.pop(context);
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Blood glucose recorded for ${member.name}!'),
-                      backgroundColor: AppColors.secondary,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
                 }
               },
-              child: Text(isEditing ? 'Update Blood Sugar Reading' : 'Save Blood Sugar Reading'),
+              child: Text(isEditing ? l10n.updateGlucoseReading : l10n.saveGlucoseReading),
             ),
           ],
         ),

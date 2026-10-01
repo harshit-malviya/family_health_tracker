@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/clinical_standards.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/health_providers.dart';
 import '../widgets/family_member_header.dart';
 import '../widgets/metric_summary_card.dart';
@@ -13,6 +14,7 @@ class DashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final member = ref.watch(activeMemberProvider);
     final bpReadings = ref.watch(bpReadingsProvider).asData?.value ?? [];
     final glucoseReadings = ref.watch(glucoseReadingsProvider).asData?.value ?? [];
@@ -24,7 +26,7 @@ class DashboardScreen extends ConsumerWidget {
     final latestGlucose = glucoseReadings.isNotEmpty ? glucoseReadings.first : null;
 
     final bpValueStr = latestBp != null ? '${latestBp.systolic}/${latestBp.diastolic}' : '--/--';
-    final pulseStr = latestBp != null ? '${latestBp.pulse} bpm' : null;
+    final pulseStr = latestBp != null ? '${latestBp.pulse} ${l10n.bpm}' : null;
 
     String glucoseValueStr = '--';
     if (latestGlucose != null) {
@@ -52,7 +54,7 @@ class DashboardScreen extends ConsumerWidget {
                           Row(
                             children: [
                               Text(
-                                member != null ? '${member.avatarEmoji} ${member.name}' : 'Family Health',
+                                member != null ? '${member.avatarEmoji} ${member.name}' : l10n.familyHealth,
                                 style: const TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.w800,
@@ -68,7 +70,7 @@ class DashboardScreen extends ConsumerWidget {
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Text(
-                                    '${member.age} yrs',
+                                    l10n.yearsOld(member.age),
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
@@ -80,9 +82,9 @@ class DashboardScreen extends ConsumerWidget {
                             ],
                           ),
                           const SizedBox(height: 2),
-                          const Text(
-                            'Daily BP & Blood Sugar records',
-                            style: TextStyle(
+                          Text(
+                            l10n.dailyRecordsSubtitle,
+                            style: const TextStyle(
                               fontSize: 14,
                               color: AppColors.textMuted,
                             ),
@@ -125,11 +127,11 @@ class DashboardScreen extends ConsumerWidget {
                 delegate: SliverChildListDelegate([
                   // Blood Pressure Card
                   MetricSummaryCard(
-                    title: 'Blood Pressure',
+                    title: l10n.bloodPressure,
                     primaryValue: bpValueStr,
                     unit: 'mmHg',
                     secondaryValue: pulseStr,
-                    statusLabel: latestBp?.category.label,
+                    statusLabel: latestBp?.category.localizedLabel(l10n),
                     statusColor: latestBp?.category.color ?? AppColors.bpNormal,
                     subtitle: latestBp != null ? '${latestBp.arm} arm, ${latestBp.posture}' : null,
                     timestamp: latestBp?.timestamp,
@@ -141,12 +143,12 @@ class DashboardScreen extends ConsumerWidget {
 
                   // Blood Sugar Card
                   MetricSummaryCard(
-                    title: 'Blood Sugar / Glucose',
+                    title: l10n.bloodSugar,
                     primaryValue: glucoseValueStr,
                     unit: unit,
-                    statusLabel: latestGlucose?.category.label,
+                    statusLabel: latestGlucose?.category.localizedLabel(l10n),
                     statusColor: latestGlucose?.category.color ?? AppColors.glucoseNormal,
-                    subtitle: latestGlucose?.mealContext.label,
+                    subtitle: latestGlucose?.mealContext.localizedLabel(l10n),
                     timestamp: latestGlucose?.timestamp,
                     icon: Icons.water_drop_rounded,
                     accentColor: AppColors.secondary,
@@ -156,9 +158,9 @@ class DashboardScreen extends ConsumerWidget {
 
                   // 7-Day Health Snapshot Card
                   if (bpStats != null || glucoseStats != null) ...[
-                    const Text(
-                      'Overview & Averages',
-                      style: TextStyle(
+                    Text(
+                      l10n.overviewAndAverages,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: AppColors.textDark,
@@ -178,10 +180,10 @@ class DashboardScreen extends ConsumerWidget {
                             _buildStatRow(
                               icon: Icons.favorite,
                               color: AppColors.primary,
-                              label: 'Avg Blood Pressure',
+                              label: l10n.avgBloodPressure,
                               value:
                                   '${bpStats.avgSystolic.toStringAsFixed(0)}/${bpStats.avgDiastolic.toStringAsFixed(0)} mmHg',
-                              badgeText: '${bpStats.normalPercentage.toStringAsFixed(0)}% normal',
+                              badgeText: l10n.normalPercent(bpStats.normalPercentage.toStringAsFixed(0)),
                               badgeColor: bpStats.normalPercentage > 70
                                   ? AppColors.bpNormal
                                   : AppColors.bpElevated,
@@ -193,11 +195,11 @@ class DashboardScreen extends ConsumerWidget {
                             _buildStatRow(
                               icon: Icons.water_drop,
                               color: AppColors.secondary,
-                              label: 'Avg Blood Glucose',
+                              label: l10n.avgBloodGlucose,
                               value: unit == 'mmol/L'
                                   ? '${ClinicalStandards.mgDlToMmol(glucoseStats.avgMgDl).toStringAsFixed(1)} mmol/L'
                                   : '${glucoseStats.avgMgDl.toStringAsFixed(0)} mg/dL',
-                              badgeText: '${glucoseStats.inRangeCount}/${glucoseStats.count} in target',
+                              badgeText: l10n.inTargetRange(glucoseStats.inRangeCount, glucoseStats.count),
                               badgeColor: AppColors.glucoseNormal,
                             ),
                           ],
@@ -215,7 +217,7 @@ class DashboardScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton.extended(
         icon: const Icon(Icons.add),
-        label: const Text('New Reading'),
+        label: Text(l10n.newReading),
         onPressed: () => _showQuickPicker(context),
       ),
     );
@@ -272,6 +274,8 @@ class DashboardScreen extends ConsumerWidget {
   }
 
   void _showQuickPicker(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -292,9 +296,9 @@ class DashboardScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              const Text(
-                'What are you measuring?',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              Text(
+                l10n.whatMeasuring,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 20),
               ListTile(
@@ -306,8 +310,8 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                   child: const Icon(Icons.favorite, color: AppColors.primary),
                 ),
-                title: const Text('Blood Pressure & Pulse', style: TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: const Text('Systolic, Diastolic, Heart rate'),
+                title: Text(l10n.bpAndPulse, style: const TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Text(l10n.bpAndPulseDesc),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -324,8 +328,8 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                   child: const Icon(Icons.water_drop, color: AppColors.secondary),
                 ),
-                title: const Text('Blood Glucose / Sugar', style: TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: const Text('Fasting, Post-meal, Bedtime'),
+                title: Text(l10n.bloodSugar, style: const TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Text(l10n.bloodSugarDesc),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                 onTap: () {
                   Navigator.pop(ctx);

@@ -3,8 +3,13 @@ import 'package:google_fonts/google_fonts.dart';
 import '../constants/app_colors.dart';
 
 class AppTheme {
-  static ThemeData get lightTheme {
-    final baseTextTheme = GoogleFonts.outfitTextTheme();
+  static ThemeData get lightTheme => getTheme();
+
+  static ThemeData getTheme([Locale? locale]) {
+    final isHindi = locale?.languageCode == 'hi';
+    final baseTextTheme = isHindi
+        ? GoogleFonts.notoSansDevanagariTextTheme()
+        : GoogleFonts.outfitTextTheme();
 
     return ThemeData(
       useMaterial3: true,

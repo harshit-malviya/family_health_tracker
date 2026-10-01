@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/clinical_standards.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/bp_reading.dart';
 import '../../models/glucose_reading.dart';
 import '../../providers/health_providers.dart';
@@ -21,6 +23,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final member = ref.watch(activeMemberProvider);
     final bpReadings = ref.watch(bpReadingsProvider).asData?.value ?? [];
     final glucoseReadings = ref.watch(glucoseReadingsProvider).asData?.value ?? [];
@@ -43,9 +46,15 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
     combinedLogs.sort((a, b) => (b['timestamp'] as DateTime).compareTo(a['timestamp'] as DateTime));
 
+    final filterDisplayMap = {
+      'All': l10n.filterAll,
+      'BP': l10n.filterBp,
+      'Glucose': l10n.filterGlucose,
+    };
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Readings History'),
+        title: Text(l10n.readingsHistory),
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -62,11 +71,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  _buildFilterChip('All'),
+                  _buildFilterChip('All', l10n.filterAll),
                   const SizedBox(width: 8),
-                  _buildFilterChip('BP'),
+                  _buildFilterChip('BP', l10n.filterBp),
                   const SizedBox(width: 8),
-                  _buildFilterChip('Glucose'),
+                  _buildFilterChip('Glucose', l10n.filterGlucose),
                 ],
               ),
             ),
@@ -85,7 +94,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 24),
                           child: Text(
-                            'No $_selectedFilter records for ${member?.name ?? "this member"} yet.',
+                            l10n.noRecordsYet(
+                              filterDisplayMap[_selectedFilter] ?? _selectedFilter,
+                              member?.name ?? '',
+                            ),
                             textAlign: TextAlign.center,
                             style: const TextStyle(fontSize: 16, color: AppColors.textMuted),
                           ),
@@ -114,10 +126,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     );
   }
 
-  Widget _buildFilterChip(String label) {
-    final isSelected = _selectedFilter == label;
+  Widget _buildFilterChip(String key, String displayLabel) {
+    final isSelected = _selectedFilter == key;
     return ChoiceChip(
-      label: Text(label),
+      label: Text(displayLabel),
       selected: isSelected,
       selectedColor: AppColors.primaryLight,
       labelStyle: TextStyle(
@@ -125,13 +137,16 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         color: isSelected ? AppColors.primary : AppColors.textDark,
       ),
       onSelected: (val) {
-        if (val) setState(() => _selectedFilter = label);
+        if (val) setState(() => _selectedFilter = key);
       },
     );
   }
 
   Widget _buildBpTile(BuildContext context, BpReading bp) {
+    final l10n = AppLocalizations.of(context)!;
     final timeStr = DateFormat('MMM d, yyyy • h:mm a').format(bp.timestamp);
+    final armStr = bp.arm.toLowerCase() == 'left' ? l10n.armLeft : l10n.armRight;
+    final postureStr = _getLocalizedPosture(l10n, bp.posture);
 
     return Dismissible(
       key: Key(bp.id),
@@ -148,7 +163,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       onDismissed: (_) {
         ref.read(bpReadingsProvider.notifier).deleteReading(bp.id);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Reading deleted')),
+          SnackBar(content: Text(l10n.readingDeleted)),
         );
       },
       child: Container(
@@ -198,7 +213,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                bp.category.label,
+                                bp.category.localizedLabel(l10n),
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
@@ -214,7 +229,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                           children: [
                             Expanded(
                               child: Text(
-                                'Pulse: ${bp.pulse} bpm • ${bp.arm} arm, ${bp.posture}',
+                                '${l10n.pulse}: ${bp.pulse} ${l10n.bpm} • $armStr, $postureStr',
                                 style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -228,7 +243,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         if (bp.notes.isNotEmpty) ...[
                           const SizedBox(height: 4),
                           Text(
-                            'Note: "${bp.notes}"',
+                            '"${bp.notes}"',
                             style: const TextStyle(
                                 fontSize: 12, fontStyle: FontStyle.italic, color: AppColors.textDark),
                             maxLines: 2,
@@ -250,6 +265,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   }
 
   Widget _buildGlucoseTile(BuildContext context, GlucoseReading g, String unit) {
+    final l10n = AppLocalizations.of(context)!;
     final timeStr = DateFormat('MMM d, yyyy • h:mm a').format(g.timestamp);
     final valueStr = unit == 'mmol/L'
         ? '${g.valueMmol.toStringAsFixed(1)} mmol/L'
@@ -270,7 +286,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       onDismissed: (_) {
         ref.read(glucoseReadingsProvider.notifier).deleteReading(g.id);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Reading deleted')),
+          SnackBar(content: Text(l10n.readingDeleted)),
         );
       },
       child: Container(
@@ -320,7 +336,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                g.category.label,
+                                g.category.localizedLabel(l10n),
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
@@ -332,13 +348,13 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Context: ${g.mealContext.label}',
+                          '${l10n.timingMealContext}: ${g.mealContext.localizedLabel(l10n)}',
                           style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
                         ),
                         if (g.medicationNotes.isNotEmpty) ...[
                           const SizedBox(height: 4),
                           Text(
-                            'Medication: "${g.medicationNotes}"',
+                            '"${g.medicationNotes}"',
                             style: const TextStyle(
                                 fontSize: 12, fontStyle: FontStyle.italic, color: AppColors.textDark),
                             maxLines: 2,
@@ -359,10 +375,25 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     );
   }
 
+  String _getLocalizedPosture(AppLocalizations l10n, String posture) {
+    switch (posture.toLowerCase()) {
+      case 'sitting':
+        return l10n.postureSitting;
+      case 'lying':
+      case 'lying down':
+        return l10n.postureLying;
+      case 'standing':
+        return l10n.postureStanding;
+      default:
+        return posture;
+    }
+  }
+
   void _showCardActionSheet(BuildContext context, {BpReading? bp, GlucoseReading? glucose}) {
+    final l10n = AppLocalizations.of(context)!;
     final title = bp != null
-        ? '${bp.systolic}/${bp.diastolic} mmHg (${bp.category.label})'
-        : '${glucose?.valueMgDl.toStringAsFixed(0)} mg/dL (${glucose?.mealContext.label})';
+        ? '${bp.systolic}/${bp.diastolic} mmHg (${bp.category.localizedLabel(l10n)})'
+        : '${glucose?.valueMgDl.toStringAsFixed(0)} mg/dL (${glucose?.mealContext.localizedLabel(l10n)})';
 
     showModalBottomSheet(
       context: context,
@@ -405,8 +436,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   ),
                   child: const Icon(Icons.edit_outlined, color: AppColors.primary, size: 20),
                 ),
-                title: const Text('Edit Reading', style: TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: const Text('Change date, time, numbers, or notes'),
+                title: Text(l10n.editReading, style: const TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Text(l10n.dateTimeOfReading),
                 onTap: () {
                   Navigator.pop(ctx);
                   if (bp != null) _editBp(context, bp);
@@ -422,8 +453,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   ),
                   child: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
                 ),
-                title: const Text('Delete Reading', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
-                subtitle: const Text('Permanently remove this record'),
+                title: Text(l10n.delete, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+                subtitle: Text(l10n.deleteReadingConfirm),
                 onTap: () {
                   Navigator.pop(ctx);
                   if (bp != null) _confirmDelete(bp.id, true);
@@ -456,13 +487,14 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   }
 
   void _confirmDelete(String id, bool isBp) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Reading?'),
-        content: const Text('Are you sure you want to permanently delete this reading?'),
+        title: Text(l10n.deleteReadingTitle),
+        content: Text(l10n.deleteReadingConfirm),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
           TextButton(
             onPressed: () {
               if (isBp) {
@@ -472,7 +504,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               }
               Navigator.pop(ctx);
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
