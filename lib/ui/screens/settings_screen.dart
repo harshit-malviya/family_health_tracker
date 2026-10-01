@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
 import '../../providers/health_providers.dart';
+import '../widgets/member_form_dialog.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -93,34 +95,64 @@ class SettingsScreen extends ConsumerWidget {
                 child: Text('Error loading profiles: $e'),
               ),
               data: (members) {
-                return ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: members.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    final m = members[index];
-                    return ListTile(
-                      leading: Text(m.avatarEmoji, style: const TextStyle(fontSize: 26)),
-                      title: Text(m.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text('${m.relation} • ${m.age} yrs'),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          CircleAvatar(radius: 6, backgroundColor: m.color),
-                          if (members.length > 1) ...[
-                            const SizedBox(width: 8),
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline, size: 20, color: Colors.grey),
-                              onPressed: () {
-                                ref.read(familyMembersProvider.notifier).deleteMember(m.id);
-                              },
-                            ),
-                          ],
-                        ],
+                return Column(
+                  children: [
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: members.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final m = members[index];
+                        final dobSubtitle = m.dateOfBirth != null
+                            ? '${m.relation} • Born ${DateFormat('MMM d, yyyy').format(m.dateOfBirth!)} (${m.age} yrs)'
+                            : '${m.relation} • ${m.age} yrs';
+
+                        return ListTile(
+                          leading: Text(m.avatarEmoji, style: const TextStyle(fontSize: 26)),
+                          title: Text(m.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Text(dobSubtitle),
+                          onTap: () => MemberFormDialog.show(context, initialMember: m),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit_outlined, size: 20, color: AppColors.primary),
+                                tooltip: 'Edit Profile',
+                                onPressed: () => MemberFormDialog.show(context, initialMember: m),
+                              ),
+                              if (members.length > 1) ...[
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline, size: 20, color: Colors.grey),
+                                  tooltip: 'Delete Profile',
+                                  onPressed: () {
+                                    ref.read(familyMembersProvider.notifier).deleteMember(m.id);
+                                  },
+                                ),
+                              ],
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLight,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.add, color: AppColors.primary, size: 20),
                       ),
-                    );
-                  },
+                      title: const Text(
+                        'Add Family Member',
+                        style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
+                      ),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.primary),
+                      onTap: () => MemberFormDialog.show(context),
+                    ),
+                  ],
                 );
               },
             ),

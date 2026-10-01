@@ -24,9 +24,16 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createDB,
+      onUpgrade: _upgradeDB,
     );
+  }
+
+  Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('ALTER TABLE family_members ADD COLUMN dateOfBirth TEXT;');
+    }
   }
 
   Future<void> _createDB(Database db, int version) async {
@@ -36,7 +43,8 @@ class DatabaseHelper {
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         relation TEXT NOT NULL,
-        age INTEGER NOT NULL,
+        age INTEGER,
+        dateOfBirth TEXT,
         colorValue INTEGER NOT NULL,
         avatarEmoji TEXT NOT NULL
       )
@@ -77,12 +85,13 @@ class DatabaseHelper {
   }
 
   Future<void> _seedInitialMembers(Database db) async {
+    final now = DateTime.now();
     final initialMembers = [
       FamilyMember(
         id: 'member_dad',
         name: 'Dad',
         relation: 'Father',
-        age: 62,
+        dateOfBirth: DateTime(now.year - 62, 5, 15),
         colorValue: AppColors.memberPalette[0].value,
         avatarEmoji: '👨',
       ),
@@ -90,7 +99,7 @@ class DatabaseHelper {
         id: 'member_mom',
         name: 'Mom',
         relation: 'Mother',
-        age: 58,
+        dateOfBirth: DateTime(now.year - 58, 8, 20),
         colorValue: AppColors.memberPalette[1].value,
         avatarEmoji: '👩',
       ),
@@ -98,7 +107,7 @@ class DatabaseHelper {
         id: 'member_self',
         name: 'Self',
         relation: 'Self',
-        age: 32,
+        dateOfBirth: DateTime(now.year - 32, 11, 4),
         colorValue: AppColors.memberPalette[4].value,
         avatarEmoji: '🧑',
       ),

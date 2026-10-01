@@ -62,22 +62,27 @@ void main() {
   });
 
   group('Data Models Serialization & Deserialization', () {
-    test('FamilyMember serialization', () {
+    test('FamilyMember serialization and date of birth age calculation', () {
+      final now = DateTime.now();
+      final dob = DateTime(now.year - 78, now.month, now.day);
       final member = FamilyMember(
         id: 'test_1',
         name: 'Grandpa',
         relation: 'Grandfather',
-        age: 78,
+        dateOfBirth: dob,
         colorValue: 0xFF10B981,
         avatarEmoji: '👴',
       );
+
+      expect(member.age, 78);
 
       final map = member.toMap();
       final restored = FamilyMember.fromMap(map);
 
       expect(restored.id, member.id);
       expect(restored.name, member.name);
-      expect(restored.age, member.age);
+      expect(restored.age, 78);
+      expect(restored.dateOfBirth, dob);
       expect(restored.avatarEmoji, member.avatarEmoji);
     });
 
