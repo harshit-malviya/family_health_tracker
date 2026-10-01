@@ -6,6 +6,10 @@
 -keep class io.flutter.**  { *; }
 -keep class io.flutter.plugins.**  { *; }
 
+# Suppress Google Play Core deferred components warnings (not using Play Store dynamic features)
+-dontwarn com.google.android.play.core.**
+-dontwarn io.flutter.embedding.engine.deferredcomponents.**
+
 # SQLite native hooks
 -keep class com.tekartik.sqflite.** { *; }
 
