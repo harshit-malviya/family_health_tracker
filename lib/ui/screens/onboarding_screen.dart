@@ -21,7 +21,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _relationController = TextEditingController(text: 'Self');
 
   DateTime? _selectedDob;
-  int _selectedColorValue = AppColors.memberPalette.first.value;
+  int _selectedColorValue = AppColors.memberPalette.first.toARGB32();
   String _selectedEmoji = '🧑';
 
   final List<String> _emojis = ['👨', '👩', '👴', '👵', '🧑', '👧', '👦', '👶', '🩺'];
@@ -340,9 +340,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                 spacing: 10,
                                 runSpacing: 8,
                                 children: AppColors.memberPalette.map((color) {
-                                  final isSel = color.value == _selectedColorValue;
+                                  final isSel = color.toARGB32() == _selectedColorValue;
                                   return GestureDetector(
-                                    onTap: () => setState(() => _selectedColorValue = color.value),
+                                    onTap: () => setState(() => _selectedColorValue = color.toARGB32()),
                                     child: CircleAvatar(
                                       radius: 17,
                                       backgroundColor: color,

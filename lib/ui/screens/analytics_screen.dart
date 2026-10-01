@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
-import '../../core/constants/clinical_standards.dart';
 import '../../providers/health_providers.dart';
 import '../widgets/family_member_header.dart';
 
@@ -31,7 +30,6 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
 
   @override
   Widget build(BuildContext context) {
-    final member = ref.watch(activeMemberProvider);
     final bpReadings = ref.watch(bpReadingsProvider).asData?.value ?? [];
     final glucoseReadings = ref.watch(glucoseReadingsProvider).asData?.value ?? [];
     final unit = ref.watch(glucoseUnitProvider);
@@ -120,7 +118,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.grey.withOpacity(0.15)),
+              border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -150,7 +148,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
                         show: true,
                         drawVerticalLine: false,
                         getDrawingHorizontalLine: (value) => FlLine(
-                          color: Colors.grey.withOpacity(0.15),
+                          color: Colors.grey.withValues(alpha: 0.15),
                           strokeWidth: 1,
                         ),
                       ),
@@ -280,7 +278,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.grey.withOpacity(0.15)),
+              border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -304,7 +302,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
                         show: true,
                         drawVerticalLine: false,
                         getDrawingHorizontalLine: (val) => FlLine(
-                          color: Colors.grey.withOpacity(0.15),
+                          color: Colors.grey.withValues(alpha: 0.15),
                           strokeWidth: 1,
                         ),
                       ),
@@ -352,7 +350,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
                           dotData: const FlDotData(show: true),
                           belowBarData: BarAreaData(
                             show: true,
-                            color: AppColors.secondary.withOpacity(0.1),
+                            color: AppColors.secondary.withValues(alpha: 0.1),
                           ),
                         ),
                       ],
@@ -394,7 +392,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.withOpacity(0.12)),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.12)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

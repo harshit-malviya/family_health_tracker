@@ -4,7 +4,6 @@ import 'package:sqflite/sqflite.dart';
 import '../../models/family_member.dart';
 import '../../models/bp_reading.dart';
 import '../../models/glucose_reading.dart';
-import '../constants/app_colors.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();

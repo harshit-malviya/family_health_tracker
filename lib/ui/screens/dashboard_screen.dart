@@ -64,7 +64,7 @@ class DashboardScreen extends ConsumerWidget {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: member.color.withOpacity(0.15),
+                                    color: member.color.withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Text(
@@ -96,7 +96,7 @@ class DashboardScreen extends ConsumerWidget {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                          border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
                         ),
                         child: const Icon(Icons.refresh, size: 20, color: AppColors.textDark),
                       ),
@@ -170,7 +170,7 @@ class DashboardScreen extends ConsumerWidget {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: Colors.grey.withOpacity(0.12)),
+                        border: Border.all(color: Colors.grey.withValues(alpha: 0.12)),
                       ),
                       child: Column(
                         children: [
@@ -233,7 +233,7 @@ class DashboardScreen extends ConsumerWidget {
       children: [
         CircleAvatar(
           radius: 18,
-          backgroundColor: color.withOpacity(0.12),
+          backgroundColor: color.withValues(alpha: 0.12),
           child: Icon(icon, color: color, size: 18),
         ),
         const SizedBox(width: 12),
@@ -255,7 +255,7 @@ class DashboardScreen extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: badgeColor.withOpacity(0.12),
+            color: badgeColor.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(

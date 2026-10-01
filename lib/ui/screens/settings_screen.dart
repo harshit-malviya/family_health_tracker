@@ -12,7 +12,6 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final unit = ref.watch(glucoseUnitProvider);
-    final repo = ref.watch(healthRepositoryProvider);
     final membersAsync = ref.watch(familyMembersProvider);
 
     return Scaffold(
@@ -155,7 +154,7 @@ class SettingsScreen extends ConsumerWidget {
             decoration: BoxDecoration(
               color: AppColors.background,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.withOpacity(0.2)),
+              border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

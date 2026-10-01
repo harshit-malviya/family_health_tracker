@@ -51,7 +51,7 @@ class _MemberFormDialogState extends ConsumerState<MemberFormDialog> {
       _selectedEmoji = initial.avatarEmoji;
     } else {
       _selectedDob = DateTime(2000, 1, 1);
-      _selectedColorValue = AppColors.memberPalette.first.value;
+      _selectedColorValue = AppColors.memberPalette.first.toARGB32();
       _selectedEmoji = '🧑';
     }
   }
@@ -207,9 +207,9 @@ class _MemberFormDialogState extends ConsumerState<MemberFormDialog> {
               spacing: 10,
               runSpacing: 8,
               children: AppColors.memberPalette.map((color) {
-                final isSel = color.value == _selectedColorValue;
+                final isSel = color.toARGB32() == _selectedColorValue;
                 return GestureDetector(
-                  onTap: () => setState(() => _selectedColorValue = color.value),
+                  onTap: () => setState(() => _selectedColorValue = color.toARGB32()),
                   child: CircleAvatar(
                     radius: 17,
                     backgroundColor: color,

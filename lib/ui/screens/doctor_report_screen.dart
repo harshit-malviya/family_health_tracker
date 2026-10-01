@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:printing/printing.dart';
@@ -49,7 +48,7 @@ class _DoctorReportScreenState extends ConsumerState<DoctorReportScreen> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.grey.withOpacity(0.12)),
+                border: Border.all(color: Colors.grey.withValues(alpha: 0.12)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -110,7 +109,7 @@ class _DoctorReportScreenState extends ConsumerState<DoctorReportScreen> {
               decoration: BoxDecoration(
                 color: AppColors.background,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.grey.withOpacity(0.18)),
+                border: Border.all(color: Colors.grey.withValues(alpha: 0.18)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -172,9 +171,11 @@ class _DoctorReportScreenState extends ConsumerState<DoctorReportScreen> {
                         );
                         await PdfReportService.shareOrPrintPdf(bytes, member.name);
                       } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Failed to generate PDF: $e')),
-                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Failed to generate PDF: $e')),
+                          );
+                        }
                       } finally {
                         setState(() => _isGenerating = false);
                       }

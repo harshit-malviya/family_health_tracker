@@ -40,10 +40,10 @@ class MetricSummaryCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.withOpacity(0.12), width: 1.2),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.12), width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: accentColor.withOpacity(0.06),
+            color: accentColor.withValues(alpha: 0.06),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -65,7 +65,7 @@ class MetricSummaryCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: accentColor.withOpacity(0.12),
+                        color: accentColor.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: Icon(icon, color: accentColor, size: 24),
@@ -84,7 +84,7 @@ class MetricSummaryCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
-                        color: accentColor.withOpacity(0.1),
+                        color: accentColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
@@ -151,9 +151,9 @@ class MetricSummaryCard extends StatelessWidget {
                     margin: const EdgeInsets.only(bottom: 10),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.12),
+                      color: statusColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: statusColor.withOpacity(0.3)),
+                      border: Border.all(color: statusColor.withValues(alpha: 0.3)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -173,7 +173,7 @@ class MetricSummaryCard extends StatelessWidget {
                             ' • $subtitle',
                             style: TextStyle(
                               fontSize: 11,
-                              color: statusColor.withOpacity(0.85),
+                              color: statusColor.withValues(alpha: 0.85),
                             ),
                           ),
                         ],

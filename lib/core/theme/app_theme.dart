@@ -45,7 +45,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
           side: BorderSide(
-            color: Colors.grey.withOpacity(0.12),
+            color: Colors.grey.withValues(alpha: 0.12),
             width: 1.2,
           ),
         ),
@@ -91,11 +91,11 @@ class AppTheme {
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.grey.withOpacity(0.2)),
+          borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.grey.withOpacity(0.2)),
+          borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),

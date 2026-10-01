@@ -22,7 +22,7 @@ class FamilyMemberHeader extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             scrollDirection: Axis.horizontal,
             itemCount: members.length + 1,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            separatorBuilder: (_, _) => const SizedBox(width: 12),
             itemBuilder: (context, index) {
               if (index == members.length) {
                 // Add Member Button
