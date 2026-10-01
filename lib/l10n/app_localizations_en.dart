@@ -304,7 +304,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Track blood pressure and blood sugar for you and your family in one private, secure place.';
 
   @override
-  String get setupFirstProfile => 'Set up your first family profile';
+  String get setupFirstProfile => 'Create Your First Profile';
 
   @override
   String get memberName => 'Member Name';

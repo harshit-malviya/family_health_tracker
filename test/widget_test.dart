@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:health_tracker/l10n/app_localizations.dart';
 import 'package:health_tracker/ui/widgets/metric_summary_card.dart';
 import 'package:health_tracker/ui/screens/onboarding_screen.dart';
 import 'package:health_tracker/core/constants/app_colors.dart';
@@ -43,6 +44,9 @@ void main() {
     await tester.pumpWidget(
       const ProviderScope(
         child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: Locale('en'),
           home: OnboardingScreen(),
         ),
       ),

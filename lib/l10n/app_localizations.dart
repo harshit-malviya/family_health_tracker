@@ -653,7 +653,7 @@ abstract class AppLocalizations {
   /// No description provided for @setupFirstProfile.
   ///
   /// In en, this message translates to:
-  /// **'Set up your first family profile'**
+  /// **'Create Your First Profile'**
   String get setupFirstProfile;
 
   /// No description provided for @memberName.
