@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
+import '../../l10n/app_localizations.dart';
 
 class MetricSummaryCard extends StatelessWidget {
   final String title;
@@ -32,9 +33,10 @@ class MetricSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final timeStr = timestamp != null
         ? DateFormat('h:mm a, MMM d').format(timestamp!)
-        : 'No readings yet';
+        : (l10n?.noReadingsYet ?? 'No readings yet');
 
     return Container(
       decoration: BoxDecoration(
@@ -93,7 +95,7 @@ class MetricSummaryCard extends StatelessWidget {
                           Icon(Icons.add, size: 16, color: accentColor),
                           const SizedBox(width: 4),
                           Text(
-                            'Log',
+                            l10n?.logAction ?? 'Log',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,

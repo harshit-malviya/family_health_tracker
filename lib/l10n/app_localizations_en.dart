@@ -573,4 +573,108 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backupExportSuccess => 'Backup export completed.';
+
+  @override
+  String get confirmRestore => 'Confirm Restore';
+
+  @override
+  String restoreFileLabel(String fileName) {
+    return 'File: $fileName';
+  }
+
+  @override
+  String restoreCreatedLabel(String dateTime) {
+    return 'Created: $dateTime';
+  }
+
+  @override
+  String get familyProfilesPreview => 'Family Profiles';
+
+  @override
+  String get bpReadingsPreview => 'BP Readings';
+
+  @override
+  String get glucoseReadingsPreview => 'Blood Sugar Readings';
+
+  @override
+  String get restoreMergeWarning =>
+      'Existing data with matching records will be updated, and new records will be added safely.';
+
+  @override
+  String get restoreNow => 'Restore Now';
+
+  @override
+  String restoreSuccessSnackbar(int profiles, int bp, int glucose) {
+    return 'Data restored successfully! $profiles profiles, $bp BP, $glucose Blood Sugar records imported.';
+  }
+
+  @override
+  String restoreFailedRead(String error) {
+    return 'Failed to read backup file: $error';
+  }
+
+  @override
+  String get restoreInvalidStructure =>
+      'Invalid backup file: Structure is corrupted or incompatible.';
+
+  @override
+  String get readyToStart => 'Ready to Start!';
+
+  @override
+  String get addAnotherProfile => 'Add Another Family Member';
+
+  @override
+  String get restoreExistingBackup => 'Restore more records from backup file';
+
+  @override
+  String get continueToDashboard => 'Continue to Dashboard';
+
+  @override
+  String get alreadyHaveRecords => 'Already have saved records?';
+
+  @override
+  String get medicalAlignmentTitle => 'Medical Standard Alignment';
+
+  @override
+  String get medicalBpDisclaimer =>
+      'Blood Pressure targets follow ACC/AHA 2017 Guidelines.';
+
+  @override
+  String get medicalGlucoseDisclaimer =>
+      'Blood Glucose targets follow ADA 2024 Standards of Care.';
+
+  @override
+  String get medicalDoctorAdvice =>
+      'Always consult a certified medical professional for diagnosis.';
+
+  @override
+  String get privacyPolicyTitle => 'Privacy & Data Ownership';
+
+  @override
+  String get privacyPolicySubtitle =>
+      '100% on-device local storage. No trackers, no clouds.';
+
+  @override
+  String get privacyPolicyBody =>
+      'Family Health Tracker operates on a strict local-first and zero-cloud architecture.\n\n• Zero Telemetry: No third-party analytics, tracking SDKs, or remote telemetry are present.\n• Private SQLite Storage: All personal health information (blood pressure, blood glucose, family profiles) remains exclusively on your device in private internal storage.\n• Cloud Backups Disabled: Android Auto Backup is explicitly disabled to prevent unencrypted cloud transfer of health data.\n• User Ownership: You have total control over exports (PDF and JSON backups). Data is never shared or transmitted without your explicit action.';
+
+  @override
+  String get close => 'Close';
+
+  @override
+  String get noReadingsYet => 'No readings yet';
+
+  @override
+  String get logAction => 'Log';
+
+  @override
+  String get longPressHint => 'Long press card to edit or delete.';
+
+  @override
+  String errorLoadingProfiles(String error) {
+    return 'Error loading profiles: $error';
+  }
+
+  @override
+  String get retry => 'Retry';
 }

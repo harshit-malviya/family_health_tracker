@@ -577,4 +577,109 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get backupExportSuccess => 'बैकअप निर्यात पूरा हुआ।';
+
+  @override
+  String get confirmRestore => 'पुनर्स्थापना की पुष्टि करें';
+
+  @override
+  String restoreFileLabel(String fileName) {
+    return 'फ़ाइल: $fileName';
+  }
+
+  @override
+  String restoreCreatedLabel(String dateTime) {
+    return 'तैयार किया गया: $dateTime';
+  }
+
+  @override
+  String get familyProfilesPreview => 'पारिवारिक प्रोफ़ाइल';
+
+  @override
+  String get bpReadingsPreview => 'रक्तचाप रिकॉर्ड';
+
+  @override
+  String get glucoseReadingsPreview => 'ब्लड शुगर रिकॉर्ड';
+
+  @override
+  String get restoreMergeWarning =>
+      'समान रिकॉर्ड वाले मौजूदा डेटा को अपडेट किया जाएगा, और नए रिकॉर्ड सुरक्षित रूप से जोड़े जाएंगे।';
+
+  @override
+  String get restoreNow => 'अभी पुनर्स्थापित करें';
+
+  @override
+  String restoreSuccessSnackbar(int profiles, int bp, int glucose) {
+    return 'डेटा सफलतापूर्वक पुनर्स्थापित किया गया! $profiles प्रोफ़ाइल, $bp BP, $glucose ब्लड शुगर रिकॉर्ड आयात किए गए।';
+  }
+
+  @override
+  String restoreFailedRead(String error) {
+    return 'बैकअप फ़ाइल पढ़ने में विफल: $error';
+  }
+
+  @override
+  String get restoreInvalidStructure =>
+      'अमान्य बैकअप फ़ाइल: संरचना दूषित या असंगत है।';
+
+  @override
+  String get readyToStart => 'शुरू करने के लिए तैयार!';
+
+  @override
+  String get addAnotherProfile => 'एक और पारिवारिक सदस्य जोड़ें';
+
+  @override
+  String get restoreExistingBackup =>
+      'बैकअप फ़ाइल से और रिकॉर्ड पुनर्स्थापित करें';
+
+  @override
+  String get continueToDashboard => 'डैशबोर्ड पर जारी रखें';
+
+  @override
+  String get alreadyHaveRecords => 'क्या पहले से रिकॉर्ड मौजूद हैं?';
+
+  @override
+  String get medicalAlignmentTitle => 'चिकित्सा मानक संरेखण';
+
+  @override
+  String get medicalBpDisclaimer =>
+      'रक्तचाप लक्ष्य ACC/AHA 2017 दिशानिर्देशों का पालन करते हैं।';
+
+  @override
+  String get medicalGlucoseDisclaimer =>
+      'रक्त शर्करा लक्ष्य ADA 2024 मानकों का पालन करते हैं।';
+
+  @override
+  String get medicalDoctorAdvice =>
+      'निदान के लिए हमेशा एक प्रमाणित चिकित्सक से परामर्श लें।';
+
+  @override
+  String get privacyPolicyTitle => 'गोपनीयता और डेटा स्वामित्व';
+
+  @override
+  String get privacyPolicySubtitle =>
+      '100% ऑन-डिवाइस स्थानीय स्टोरेज। कोई ट्रैकर या क्लाउड नहीं।';
+
+  @override
+  String get privacyPolicyBody =>
+      'फैमिली हेल्थ ट्रैकर पूरी तरह से लोकल-फर्स्ट और ज़ीरो-क्लाउड आर्किटेक्चर पर काम करता है।\n\n• ज़ीरो टेलीमेट्री: कोई तृतीय-पक्ष एनालिटिक्स, ट्रैकिंग SDK या रिमोट टेलीमेट्री मौजूद नहीं है।\n• निजी SQLite स्टोरेज: सभी व्यक्तिगत स्वास्थ्य जानकारी (रक्तचाप, ब्लड शुगर, पारिवारिक प्रोफ़ाइल) विशेष रूप से आपके डिवाइस के आंतरिक निजी स्टोरेज में रहती है।\n• क्लाउड बैकअप अक्षम: स्वास्थ्य डेटा के अवांछित क्लाउड ट्रांसफर को रोकने के लिए एंड्रॉइड ऑटो बैकअप पूरी तरह से अक्षम है।\n• उपयोगकर्ता स्वामित्व: बैकअप और PDF निर्यात पर आपका पूरा नियंत्रण है। आपकी स्पष्ट अनुमति के बिना डेटा कभी साझा नहीं किया जाता।';
+
+  @override
+  String get close => 'बंद करें';
+
+  @override
+  String get noReadingsYet => 'अभी तक कोई रिकॉर्ड नहीं';
+
+  @override
+  String get logAction => 'दर्ज करें';
+
+  @override
+  String get longPressHint => 'संपादित या हटाने के लिए कार्ड को दबाकर रखें।';
+
+  @override
+  String errorLoadingProfiles(String error) {
+    return 'प्रोफ़ाइल लोड करने में त्रुटि: $error';
+  }
+
+  @override
+  String get retry => 'पुनः प्रयास करें';
 }

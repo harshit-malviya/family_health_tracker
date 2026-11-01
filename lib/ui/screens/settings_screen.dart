@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/app_constants.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/health_providers.dart';
 import '../../providers/locale_provider.dart';
@@ -278,6 +279,32 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
 
+          // Privacy & Policy Section
+          _buildCardSection(
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.secondary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.privacy_tip_outlined, color: AppColors.secondary, size: 20),
+              ),
+              title: Text(
+                l10n.privacyPolicyTitle,
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+              ),
+              subtitle: Text(
+                l10n.privacyPolicySubtitle,
+                style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+              ),
+              trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
+              onTap: () => _showPrivacyPolicyDialog(context, l10n),
+            ),
+          ),
+          const SizedBox(height: 20),
+
           // Clinical Disclaimer Section
           Container(
             padding: const EdgeInsets.all(16),
@@ -290,21 +317,21 @@ class SettingsScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  children: const [
-                    Icon(Icons.verified_user_outlined, size: 18, color: AppColors.textMuted),
-                    SizedBox(width: 8),
+                  children: [
+                    const Icon(Icons.verified_user_outlined, size: 18, color: AppColors.textMuted),
+                    const SizedBox(width: 8),
                     Text(
-                      'Medical Standard Alignment',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textDark),
+                      l10n.medicalAlignmentTitle,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textDark),
                     ),
                   ],
                 ),
                 const SizedBox(height: 6),
-                const Text(
-                  '• Blood Pressure categories follow the American Heart Association (AHA / ACC 2017) Guidelines.\n'
-                  '• Blood Glucose targets follow the American Diabetes Association (ADA 2024) Standards of Care.\n'
-                  '• This app is an educational tracking companion and does not substitute professional medical advice.',
-                  style: TextStyle(fontSize: 12, color: AppColors.textMuted, height: 1.4),
+                Text(
+                  '• ${l10n.medicalBpDisclaimer}\n'
+                  '• ${l10n.medicalGlucoseDisclaimer}\n'
+                  '• ${l10n.medicalDoctorAdvice}',
+                  style: const TextStyle(fontSize: 12, color: AppColors.textMuted, height: 1.4),
                 ),
               ],
             ),
@@ -314,8 +341,8 @@ class SettingsScreen extends ConsumerWidget {
           // App Version & Branding Footer
           Center(
             child: Column(
-              children: [
-                const Text(
+              children: const [
+                Text(
                   'Family Health Tracker',
                   style: TextStyle(
                     fontSize: 13,
@@ -323,15 +350,15 @@ class SettingsScreen extends ConsumerWidget {
                     color: AppColors.textDark,
                   ),
                 ),
-                const SizedBox(height: 4),
-                const Text(
-                  'v2.0.0 (Build 4)',
+                SizedBox(height: 4),
+                Text(
+                  AppConstants.appDisplayVersion,
                   style: TextStyle(
                     fontSize: 12,
                     color: AppColors.textMuted,
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
               ],
             ),
           ),
@@ -365,6 +392,82 @@ class SettingsScreen extends ConsumerWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: child,
+    );
+  }
+
+  void _showPrivacyPolicyDialog(BuildContext context, AppLocalizations l10n) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (modalCtx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.secondary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.privacy_tip_rounded, color: AppColors.secondary, size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      l10n.privacyPolicyTitle,
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.pop(modalCtx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Container(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(modalCtx).size.height * 0.5,
+                ),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                ),
+                child: SingleChildScrollView(
+                  child: Text(
+                    l10n.privacyPolicyBody,
+                    style: const TextStyle(fontSize: 13, height: 1.5, color: AppColors.textDark),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  onPressed: () => Navigator.pop(modalCtx),
+                  child: Text(l10n.close),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

@@ -259,5 +259,80 @@
   "backupSecurityWarningMessage": "This export creates an unencrypted JSON file containing sensitive personal health records (names, dates of birth, blood pressure, and blood sugar readings). Ensure you store or share this file securely.",
   "backupExportAnyway": "Export Anyway",
   "backupCancel": "Cancel",
-  "backupExportSuccess": "Backup export completed."
+  "backupExportSuccess": "Backup export completed.",
+
+  "confirmRestore": "Confirm Restore",
+  "restoreFileLabel": "File: {fileName}",
+  "@restoreFileLabel": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "restoreCreatedLabel": "Created: {dateTime}",
+  "@restoreCreatedLabel": {
+    "placeholders": {
+      "dateTime": {
+        "type": "String"
+      }
+    }
+  },
+  "familyProfilesPreview": "Family Profiles",
+  "bpReadingsPreview": "BP Readings",
+  "glucoseReadingsPreview": "Blood Sugar Readings",
+  "restoreMergeWarning": "Existing data with matching records will be updated, and new records will be added safely.",
+  "restoreNow": "Restore Now",
+  "restoreSuccessSnackbar": "Data restored successfully! {profiles} profiles, {bp} BP, {glucose} Blood Sugar records imported.",
+  "@restoreSuccessSnackbar": {
+    "placeholders": {
+      "profiles": {
+        "type": "int"
+      },
+      "bp": {
+        "type": "int"
+      },
+      "glucose": {
+        "type": "int"
+      }
+    }
+  },
+  "restoreFailedRead": "Failed to read backup file: {error}",
+  "@restoreFailedRead": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "restoreInvalidStructure": "Invalid backup file: Structure is corrupted or incompatible.",
+
+  "readyToStart": "Ready to Start!",
+  "addAnotherProfile": "Add Another Family Member",
+  "restoreExistingBackup": "Restore more records from backup file",
+  "continueToDashboard": "Continue to Dashboard",
+  "alreadyHaveRecords": "Already have saved records?",
+
+  "medicalAlignmentTitle": "Medical Standard Alignment",
+  "medicalBpDisclaimer": "Blood Pressure targets follow ACC/AHA 2017 Guidelines.",
+  "medicalGlucoseDisclaimer": "Blood Glucose targets follow ADA 2024 Standards of Care.",
+  "medicalDoctorAdvice": "Always consult a certified medical professional for diagnosis.",
+
+  "privacyPolicyTitle": "Privacy & Data Ownership",
+  "privacyPolicySubtitle": "100% on-device local storage. No trackers, no clouds.",
+  "privacyPolicyBody": "Family Health Tracker operates on a strict local-first and zero-cloud architecture.\n\n• Zero Telemetry: No third-party analytics, tracking SDKs, or remote telemetry are present.\n• Private SQLite Storage: All personal health information (blood pressure, blood glucose, family profiles) remains exclusively on your device in private internal storage.\n• Cloud Backups Disabled: Android Auto Backup is explicitly disabled to prevent unencrypted cloud transfer of health data.\n• User Ownership: You have total control over exports (PDF and JSON backups). Data is never shared or transmitted without your explicit action.",
+  "close": "Close",
+
+  "noReadingsYet": "No readings yet",
+  "logAction": "Log",
+  "longPressHint": "Long press card to edit or delete.",
+  "errorLoadingProfiles": "Error loading profiles: {error}",
+  "@errorLoadingProfiles": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "retry": "Retry"
 }

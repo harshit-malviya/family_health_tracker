@@ -42,6 +42,27 @@ class PdfReportService {
     );
   }
 
+  static String _sanitizeText(String input) {
+    if (input.isEmpty) return input;
+    final emojiRegex = RegExp(
+      r'[\u{1F600}-\u{1F64F}'
+      r'|\u{1F300}-\u{1F5FF}'
+      r'|\u{1F680}-\u{1F6FF}'
+      r'|\u{1F700}-\u{1F77F}'
+      r'|\u{1F780}-\u{1F7FF}'
+      r'|\u{1F800}-\u{1F8FF}'
+      r'|\u{1F900}-\u{1F9FF}'
+      r'|\u{1FA00}-\u{1FA6F}'
+      r'|\u{1FA70}-\u{1FAFF}'
+      r'|\u{2600}-\u{26FF}'
+      r'|\u{2700}-\u{27BF}'
+      r'|\u{FE00}-\u{FE0F}'
+      r'|\u{1F1E6}-\u{1F1FF}]',
+      unicode: true,
+    );
+    return input.replaceAll(emojiRegex, '').trim();
+  }
+
   static Future<Uint8List> generateReport({
     required FamilyMember member,
     required List<BpReading> bpReadings,
@@ -127,8 +148,8 @@ class PdfReportService {
               child: pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
                 children: [
-                  _buildPatientAttribute('Patient Name', member.name),
-                  _buildPatientAttribute('Relationship', member.relation),
+                  _buildPatientAttribute('Patient Name', _sanitizeText(member.name)),
+                  _buildPatientAttribute('Relationship', _sanitizeText(member.relation)),
                   _buildPatientAttribute('Age', '${member.age} yrs'),
                   _buildPatientAttribute('BP Readings', '${bpReadings.length} logs'),
                   _buildPatientAttribute('Glucose Readings', '${glucoseReadings.length} logs'),
@@ -186,7 +207,7 @@ class PdfReportService {
                     '${r.pulse}',
                     r.category.label,
                     '${r.arm}, ${r.posture}',
-                    r.notes.isNotEmpty ? r.notes : '-',
+                    r.notes.isNotEmpty ? _sanitizeText(r.notes) : '-',
                   ];
                 }).toList(),
                 headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10, color: PdfColors.white),
@@ -216,7 +237,7 @@ class PdfReportService {
                     valStr,
                     g.mealContext.label,
                     g.category.label,
-                    g.medicationNotes.isNotEmpty ? g.medicationNotes : '-',
+                    g.medicationNotes.isNotEmpty ? _sanitizeText(g.medicationNotes) : '-',
                   ];
                 }).toList(),
                 headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10, color: PdfColors.white),
@@ -275,9 +296,10 @@ class PdfReportService {
   }
 
   static Future<void> shareOrPrintPdf(Uint8List pdfBytes, String patientName) async {
+    final sanitizedPatientName = patientName.replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '_');
     await Printing.sharePdf(
       bytes: pdfBytes,
-      filename: 'Health_Report_${patientName}_${DateFormat('yyyyMMdd').format(DateTime.now())}.pdf',
+      filename: 'Health_Report_${sanitizedPatientName}_${DateFormat('yyyyMMdd').format(DateTime.now())}.pdf',
     );
   }
 }

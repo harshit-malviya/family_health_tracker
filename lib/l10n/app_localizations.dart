@@ -1171,6 +1171,180 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Backup export completed.'**
   String get backupExportSuccess;
+
+  /// No description provided for @confirmRestore.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Restore'**
+  String get confirmRestore;
+
+  /// No description provided for @restoreFileLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'File: {fileName}'**
+  String restoreFileLabel(String fileName);
+
+  /// No description provided for @restoreCreatedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Created: {dateTime}'**
+  String restoreCreatedLabel(String dateTime);
+
+  /// No description provided for @familyProfilesPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Family Profiles'**
+  String get familyProfilesPreview;
+
+  /// No description provided for @bpReadingsPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'BP Readings'**
+  String get bpReadingsPreview;
+
+  /// No description provided for @glucoseReadingsPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Blood Sugar Readings'**
+  String get glucoseReadingsPreview;
+
+  /// No description provided for @restoreMergeWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Existing data with matching records will be updated, and new records will be added safely.'**
+  String get restoreMergeWarning;
+
+  /// No description provided for @restoreNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore Now'**
+  String get restoreNow;
+
+  /// No description provided for @restoreSuccessSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Data restored successfully! {profiles} profiles, {bp} BP, {glucose} Blood Sugar records imported.'**
+  String restoreSuccessSnackbar(int profiles, int bp, int glucose);
+
+  /// No description provided for @restoreFailedRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to read backup file: {error}'**
+  String restoreFailedRead(String error);
+
+  /// No description provided for @restoreInvalidStructure.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid backup file: Structure is corrupted or incompatible.'**
+  String get restoreInvalidStructure;
+
+  /// No description provided for @readyToStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready to Start!'**
+  String get readyToStart;
+
+  /// No description provided for @addAnotherProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Another Family Member'**
+  String get addAnotherProfile;
+
+  /// No description provided for @restoreExistingBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore more records from backup file'**
+  String get restoreExistingBackup;
+
+  /// No description provided for @continueToDashboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue to Dashboard'**
+  String get continueToDashboard;
+
+  /// No description provided for @alreadyHaveRecords.
+  ///
+  /// In en, this message translates to:
+  /// **'Already have saved records?'**
+  String get alreadyHaveRecords;
+
+  /// No description provided for @medicalAlignmentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Medical Standard Alignment'**
+  String get medicalAlignmentTitle;
+
+  /// No description provided for @medicalBpDisclaimer.
+  ///
+  /// In en, this message translates to:
+  /// **'Blood Pressure targets follow ACC/AHA 2017 Guidelines.'**
+  String get medicalBpDisclaimer;
+
+  /// No description provided for @medicalGlucoseDisclaimer.
+  ///
+  /// In en, this message translates to:
+  /// **'Blood Glucose targets follow ADA 2024 Standards of Care.'**
+  String get medicalGlucoseDisclaimer;
+
+  /// No description provided for @medicalDoctorAdvice.
+  ///
+  /// In en, this message translates to:
+  /// **'Always consult a certified medical professional for diagnosis.'**
+  String get medicalDoctorAdvice;
+
+  /// No description provided for @privacyPolicyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy & Data Ownership'**
+  String get privacyPolicyTitle;
+
+  /// No description provided for @privacyPolicySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'100% on-device local storage. No trackers, no clouds.'**
+  String get privacyPolicySubtitle;
+
+  /// No description provided for @privacyPolicyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Family Health Tracker operates on a strict local-first and zero-cloud architecture.\n\n• Zero Telemetry: No third-party analytics, tracking SDKs, or remote telemetry are present.\n• Private SQLite Storage: All personal health information (blood pressure, blood glucose, family profiles) remains exclusively on your device in private internal storage.\n• Cloud Backups Disabled: Android Auto Backup is explicitly disabled to prevent unencrypted cloud transfer of health data.\n• User Ownership: You have total control over exports (PDF and JSON backups). Data is never shared or transmitted without your explicit action.'**
+  String get privacyPolicyBody;
+
+  /// No description provided for @close.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
+
+  /// No description provided for @noReadingsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No readings yet'**
+  String get noReadingsYet;
+
+  /// No description provided for @logAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Log'**
+  String get logAction;
+
+  /// No description provided for @longPressHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Long press card to edit or delete.'**
+  String get longPressHint;
+
+  /// No description provided for @errorLoadingProfiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading profiles: {error}'**
+  String errorLoadingProfiles(String error);
+
+  /// No description provided for @retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retry;
 }
 
 class _AppLocalizationsDelegate

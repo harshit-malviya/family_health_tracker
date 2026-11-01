@@ -224,19 +224,21 @@ class DatabaseHelper {
 
   Future<String> exportToJson() async {
     final db = await instance.database;
-    final members = await db.query('family_members');
-    final bp = await db.query('bp_readings');
-    final glucose = await db.query('glucose_readings');
+    return await db.transaction((txn) async {
+      final members = await txn.query('family_members');
+      final bp = await txn.query('bp_readings');
+      final glucose = await txn.query('glucose_readings');
 
-    final exportData = {
-      'version': 1,
-      'exportedAt': DateTime.now().toIso8601String(),
-      'family_members': members,
-      'bp_readings': bp,
-      'glucose_readings': glucose,
-    };
+      final exportData = {
+        'version': 1,
+        'exportedAt': DateTime.now().toIso8601String(),
+        'family_members': members,
+        'bp_readings': bp,
+        'glucose_readings': glucose,
+      };
 
-    return jsonEncode(exportData);
+      return jsonEncode(exportData);
+    });
   }
 
   Future<bool> importFromJson(String jsonString) async {

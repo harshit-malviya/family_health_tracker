@@ -121,6 +121,7 @@ class BackupRestoreService {
     WidgetRef ref, {
     VoidCallback? onSuccess,
   }) async {
+    final l10n = AppLocalizations.of(context);
     try {
       final pickedFile = await FilePicker.pickFile(
         type: FileType.custom,
@@ -137,7 +138,7 @@ class BackupRestoreService {
 
       if (jsonContent.trim().isEmpty) {
         if (!context.mounted) return;
-        _showErrorSnackBar(context, 'The selected file is empty.');
+        _showErrorSnackBar(context, l10n?.restoreInvalidStructure ?? 'The selected file is empty.');
         return;
       }
 
@@ -151,7 +152,7 @@ class BackupRestoreService {
         data = decoded;
       } catch (e) {
         if (!context.mounted) return;
-        _showErrorSnackBar(context, 'Invalid JSON format. Please pick a valid backup file.');
+        _showErrorSnackBar(context, l10n?.restoreInvalidStructure ?? 'Invalid backup file: Structure is corrupted or incompatible.');
         return;
       }
 
@@ -163,7 +164,7 @@ class BackupRestoreService {
           !data.containsKey('bp_readings') &&
           !data.containsKey('glucose_readings')) {
         if (!context.mounted) return;
-        _showErrorSnackBar(context, 'Selected file is not a valid Health Tracker backup.');
+        _showErrorSnackBar(context, l10n?.restoreInvalidStructure ?? 'Selected file is not a valid Health Tracker backup.');
         return;
       }
 
@@ -182,13 +183,13 @@ class BackupRestoreService {
         builder: (dialogCtx) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           title: Row(
-            children: const [
-              Icon(Icons.settings_backup_restore, color: AppColors.primary),
-              SizedBox(width: 10),
+            children: [
+              const Icon(Icons.settings_backup_restore, color: AppColors.primary),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Confirm Restore',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 19),
+                  l10n?.confirmRestore ?? 'Confirm Restore',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 19),
                 ),
               ),
             ],
@@ -198,14 +199,16 @@ class BackupRestoreService {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'File: ${pickedFile.name}',
+                l10n != null ? l10n.restoreFileLabel(pickedFile.name) : 'File: ${pickedFile.name}',
                 style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                 overflow: TextOverflow.ellipsis,
               ),
               if (exportedAt != null) ...[
                 const SizedBox(height: 4),
                 Text(
-                  'Created: ${DateFormat('MMM d, yyyy • h:mm a').format(exportedAt)}',
+                  l10n != null
+                      ? l10n.restoreCreatedLabel(DateFormat('MMM d, yyyy • h:mm a').format(exportedAt))
+                      : 'Created: ${DateFormat('MMM d, yyyy • h:mm a').format(exportedAt)}',
                   style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
                 ),
               ],
@@ -221,21 +224,21 @@ class BackupRestoreService {
                   children: [
                     _buildPreviewRow(
                       Icons.people_alt_rounded,
-                      'Family Profiles',
+                      l10n?.familyProfilesPreview ?? 'Family Profiles',
                       '${membersList.length}',
                       AppColors.primary,
                     ),
                     const Divider(height: 16),
                     _buildPreviewRow(
                       Icons.favorite_rounded,
-                      'BP Readings',
+                      l10n?.bpReadingsPreview ?? 'BP Readings',
                       '${bpList.length}',
                       AppColors.bpNormal,
                     ),
                     const Divider(height: 16),
                     _buildPreviewRow(
                       Icons.water_drop_rounded,
-                      'Blood Sugar Readings',
+                      l10n?.glucoseReadingsPreview ?? 'Blood Sugar Readings',
                       '${glucoseList.length}',
                       AppColors.glucoseNormal,
                     ),
@@ -243,16 +246,16 @@ class BackupRestoreService {
                 ),
               ),
               const SizedBox(height: 14),
-              const Text(
-                'Existing data with matching records will be updated, and new records will be added safely.',
-                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+              Text(
+                l10n?.restoreMergeWarning ?? 'Existing data with matching records will be updated, and new records will be added safely.',
+                style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
               ),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogCtx, false),
-              child: const Text('Cancel'),
+              child: Text(l10n?.backupCancel ?? 'Cancel'),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -261,7 +264,7 @@ class BackupRestoreService {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               onPressed: () => Navigator.pop(dialogCtx, true),
-              child: const Text('Restore Now'),
+              child: Text(l10n?.restoreNow ?? 'Restore Now'),
             ),
           ],
         ),
@@ -288,10 +291,16 @@ class BackupRestoreService {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
-              children: const [
-                Icon(Icons.check_circle_rounded, color: Colors.white),
-                SizedBox(width: 8),
-                Expanded(child: Text('Data restored successfully!')),
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    l10n != null
+                        ? l10n.restoreSuccessSnackbar(membersList.length, bpList.length, glucoseList.length)
+                        : 'Data restored successfully!',
+                  ),
+                ),
               ],
             ),
             backgroundColor: AppColors.secondary,
@@ -299,11 +308,11 @@ class BackupRestoreService {
           ),
         );
       } else {
-        _showErrorSnackBar(context, 'Failed to import backup into the database.');
+        _showErrorSnackBar(context, l10n?.restoreInvalidStructure ?? 'Failed to import backup into the database.');
       }
     } catch (e) {
       if (!context.mounted) return;
-      _showErrorSnackBar(context, 'Error selecting backup: $e');
+      _showErrorSnackBar(context, l10n != null ? l10n.restoreFailedRead('$e') : 'Error selecting backup: $e');
     }
   }
 

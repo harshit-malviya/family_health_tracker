@@ -42,7 +42,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
       appBar: AppBar(
         title: Text(l10n.trendsAndAnalytics),
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(124),
+          preferredSize: const Size.fromHeight(146),
           child: Column(
             children: [
               const FamilyMemberHeader(),
@@ -89,9 +89,18 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
     final sysSpots = <FlSpot>[];
     final diaSpots = <FlSpot>[];
 
+    double computedMinY = 50.0;
+    double computedMaxY = 190.0;
     for (int i = 0; i < recent.length; i++) {
-      sysSpots.add(FlSpot(i.toDouble(), recent[i].systolic.toDouble()));
-      diaSpots.add(FlSpot(i.toDouble(), recent[i].diastolic.toDouble()));
+      final r = recent[i];
+      sysSpots.add(FlSpot(i.toDouble(), r.systolic.toDouble()));
+      diaSpots.add(FlSpot(i.toDouble(), r.diastolic.toDouble()));
+      if (r.systolic + 15 > computedMaxY) {
+        computedMaxY = (r.systolic + 15).toDouble();
+      }
+      if (r.diastolic - 10 < computedMinY) {
+        computedMinY = (r.diastolic - 10).clamp(20, 50).toDouble();
+      }
     }
 
     // Morning vs Evening calculations
@@ -131,10 +140,13 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      l10n.systolicTrend,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    Expanded(
+                      child: Text(
+                        l10n.systolicTrend,
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     Row(
                       children: [
                         _buildLegend(color: AppColors.primary, label: 'SYS'),
@@ -277,8 +289,8 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
                         ),
                       ),
                       borderData: FlBorderData(show: false),
-                      minY: 50,
-                      maxY: 190,
+                      minY: computedMinY,
+                      maxY: computedMaxY,
                       lineBarsData: [
                         // Systolic Line
                         LineChartBarData(
@@ -355,10 +367,20 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
     final recent = sorted.length > 14 ? sorted.sublist(sorted.length - 14) : sorted;
 
     final spots = <FlSpot>[];
+    double? minGlucose;
+    double? maxGlucose;
     for (int i = 0; i < recent.length; i++) {
-      final val = unit == 'mmol/L' ? recent[i].valueMmol : recent[i].valueMgDl;
-      spots.add(FlSpot(i.toDouble(), (val as num).toDouble()));
+      final val = (unit == 'mmol/L' ? recent[i].valueMmol : recent[i].valueMgDl).toDouble();
+      spots.add(FlSpot(i.toDouble(), val));
+      if (minGlucose == null || val < minGlucose) minGlucose = val;
+      if (maxGlucose == null || val > maxGlucose) maxGlucose = val;
     }
+
+    final isMmol = unit == 'mmol/L';
+    final margin = isMmol ? 1.5 : 25.0;
+    final computedMinY = (minGlucose != null ? minGlucose - margin : 0.0)
+        .clamp(isMmol ? 1.0 : 20.0, isMmol ? 33.3 : 600.0);
+    final computedMaxY = (maxGlucose != null ? maxGlucose + margin : 100.0);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -378,10 +400,13 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      '${l10n.tabGlucose} ($unit)',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    Expanded(
+                      child: Text(
+                        '${l10n.tabGlucose} ($unit)',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     _buildLegend(color: AppColors.secondary, label: l10n.bloodSugar),
                   ],
                 ),
@@ -509,6 +534,8 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> with SingleTi
                         ),
                       ),
                       borderData: FlBorderData(show: false),
+                      minY: computedMinY,
+                      maxY: computedMaxY,
                       lineBarsData: [
                         LineChartBarData(
                           spots: spots,

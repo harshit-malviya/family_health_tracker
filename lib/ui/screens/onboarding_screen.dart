@@ -379,9 +379,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         ),
                         child: Column(
                           children: [
-                            const Text(
-                              'Already have saved records?',
-                              style: TextStyle(
+                            Text(
+                              l10n.alreadyHaveRecords,
+                              style: const TextStyle(
                                 fontSize: 13,
                                 color: AppColors.textMuted,
                                 fontWeight: FontWeight.w500,
@@ -400,7 +400,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                 },
                               ),
                               icon: const Icon(Icons.file_upload_outlined, color: AppColors.primary),
-                              label: const Text('Restore from Backup File (.json)'),
+                              label: Text(l10n.restoreExistingBackup),
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: AppColors.primary,
                                 side: const BorderSide(color: AppColors.primary, width: 1.2),
@@ -433,9 +433,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                               children: [
                                 const Icon(Icons.check_circle, color: AppColors.secondary, size: 24),
                                 const SizedBox(width: 10),
-                                const Text(
-                                  'Ready to Start!',
-                                  style: TextStyle(
+                                Text(
+                                  l10n.readyToStart,
+                                  style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
                                     color: AppColors.textDark,
@@ -485,7 +485,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                             OutlinedButton.icon(
                               onPressed: () => MemberFormDialog.show(context),
                               icon: const Icon(Icons.add),
-                              label: const Text('Add Another Family Member'),
+                              label: Text(l10n.addAnotherProfile),
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: AppColors.primary,
                                 side: const BorderSide(color: AppColors.primary),
@@ -508,7 +508,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                 },
                               ),
                               icon: const Icon(Icons.file_upload_outlined, size: 18),
-                              label: const Text('Restore more records from backup file'),
+                              label: Text(l10n.restoreExistingBackup),
                             ),
                           ],
                         ),
@@ -544,7 +544,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           }
                         : null,
                     icon: const Icon(Icons.arrow_forward_rounded),
-                    label: const Text('Continue to Dashboard'),
+                    label: Text(l10n.continueToDashboard),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),

@@ -122,16 +122,30 @@ final onboardingCompletedProvider =
 
 // Selected Family Member ID Notifier
 class SelectedMemberIdNotifier extends Notifier<String?> {
+  String? _selectedId;
+
   @override
   String? build() {
-    final members = ref.watch(familyMembersProvider).asData?.value;
-    if (members != null && members.isNotEmpty) {
-      return members.first.id;
+    final membersAsync = ref.watch(familyMembersProvider);
+    final members = membersAsync.asData?.value;
+    if (members == null) {
+      return _selectedId;
     }
-    return null;
+    if (members.isEmpty) {
+      _selectedId = null;
+      return null;
+    }
+    if (_selectedId != null && members.any((m) => m.id == _selectedId)) {
+      return _selectedId;
+    }
+    _selectedId = members.first.id;
+    return _selectedId;
   }
 
-  void select(String? id) => state = id;
+  void select(String? id) {
+    _selectedId = id;
+    state = id;
+  }
 }
 
 final selectedMemberIdProvider =
@@ -240,8 +254,12 @@ class BpStats {
 }
 
 final bpStatsProvider = Provider<BpStats?>((ref) {
-  final readings = ref.watch(bpReadingsProvider).asData?.value;
-  if (readings == null || readings.isEmpty) return null;
+  final allReadings = ref.watch(bpReadingsProvider).asData?.value;
+  if (allReadings == null || allReadings.isEmpty) return null;
+
+  final cutoff = DateTime.now().subtract(const Duration(days: 7));
+  final readings = allReadings.where((r) => r.timestamp.isAfter(cutoff)).toList();
+  if (readings.isEmpty) return null;
 
   int totalSys = 0;
   int totalDia = 0;
@@ -286,8 +304,12 @@ class GlucoseStats {
 }
 
 final glucoseStatsProvider = Provider<GlucoseStats?>((ref) {
-  final readings = ref.watch(glucoseReadingsProvider).asData?.value;
-  if (readings == null || readings.isEmpty) return null;
+  final allReadings = ref.watch(glucoseReadingsProvider).asData?.value;
+  if (allReadings == null || allReadings.isEmpty) return null;
+
+  final cutoff = DateTime.now().subtract(const Duration(days: 7));
+  final readings = allReadings.where((r) => r.timestamp.isAfter(cutoff)).toList();
+  if (readings.isEmpty) return null;
 
   double total = 0;
   double min = double.infinity;

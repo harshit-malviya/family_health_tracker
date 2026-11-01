@@ -43,7 +43,34 @@ class FamilyHealthTrackerApp extends ConsumerWidget {
           body: Center(child: CircularProgressIndicator()),
         ),
         error: (err, _) => Scaffold(
-          body: Center(child: Text('Error loading profiles: $err')),
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Builder(
+                builder: (context) {
+                  final l10n = AppLocalizations.of(context);
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.error_outline_rounded, size: 54, color: Colors.redAccent),
+                      const SizedBox(height: 16),
+                      Text(
+                        l10n != null ? l10n.errorLoadingProfiles('$err') : 'Error loading profiles: $err',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 20),
+                      ElevatedButton.icon(
+                        onPressed: () => ref.invalidate(familyMembersProvider),
+                        icon: const Icon(Icons.refresh_rounded),
+                        label: Text(l10n?.retry ?? 'Retry'),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
         ),
         data: (members) {
           if (members.isEmpty || !hasCompletedOnboarding) {
