@@ -1,69 +1,78 @@
 # Flutter Production Readiness Report
 
 **Project:** Family Health Tracker (`health_tracker`)  
-**Version:** `1.1.0+3`  
-**Review Type:** Senior Flutter/Dart Engineer, Software Architect, Security, and Production Readiness Audit  
+**Version:** `2.0.0+4`  
+**Review Type:** Senior Flutter/Dart Engineer, Software Architect, Security Reviewer, QA Engineer, and Production Readiness Audit  
 **Review Date:** October 2026  
-**Status:** **NOT READY FOR PRODUCTION** (Blockers Identified)  
+**Status:** **CONDITIONAL PRODUCTION READINESS** (0 P0 Blockers; 2 P1 Critical Issues & 6 P2 High Issues Require Attention Before Public Release)
 
 ---
 
 ## 1. Executive Summary
 
-A comprehensive, deep architectural, security, performance, and code-quality audit of the **Family Health Tracker** Flutter application was performed. The application is a local-first, privacy-oriented family medical tracker designed to record and visualize blood pressure (systolic, diastolic, pulse, arrhythmia) and blood glucose readings across multiple family profiles, with exportable clinical PDF reports for physicians.
+A comprehensive, deep architectural, security, performance, cross-platform, and code-quality audit of the **Family Health Tracker** Flutter application was conducted on codebase version `2.0.0+4`. The application is a local-first, privacy-oriented family medical companion designed to record, track, and visualize blood pressure (systolic, diastolic, pulse, arrhythmia) and blood glucose readings across multiple family profiles, with exportable clinical PDF reports for physicians.
 
 ### Overall Production Readiness
-The application has a clean visual design, strong domain foundations adhering to AHA/ACC 2017 and ADA 2024 guidelines, zero static analysis lint errors, and 100% pass rates on its existing test suite. However, **it is NOT currently ready for a public production release**. There are **2 P0 Blockers** and **4 P1 Critical Issues** that will lead to runtime crashes in localized production environments, state corruption ejecting users from the app, broken typography when offline, and accidental data loss.
+The application has matured significantly since version `1.1.0+3`. All previous P0 release blockers (CRIT-01 font encoding crash in PDF generation and CRIT-02 onboarding state ejection bug) have been verified resolved with automated regression test coverage. SQLite foreign keys are now enabled with cascading deletions, clinical input physiological boundaries are enforced, database indexes are active, R8 shrinking/obfuscation rules are configured, release keystore validation is enforced in Gradle, and Android Auto Backup is disabled to protect Personal Health Information (PHI).
+
+However, **the application is not yet unconditionally ready for public Google Play release**. While there are **0 P0 Blockers**, there are **2 P1 Critical Issues** and **6 P2 High Issues** that impact state stability, bilingual user experience, chart visualization during medical crises, and store policy compliance.
 
 ### Major Strengths
-- **Clean Clinical Domain Alignment:** Accurate implementations of AHA/ACC 2017 blood pressure and ADA 2024 blood glucose classification tables.
-- **Privacy-First Local Storage:** Operates completely offline with SQLite (`sqflite`), keeping sensitive medical logs on-device without third-party tracking or mandatory cloud accounts.
-- **Thoughtful Architecture:** Clean separation into Models, Repositories, Riverpod Providers, and UI Screens with dual-language support (English and Hindi).
-- **Proactive R8 Rules:** Custom ProGuard/R8 configurations already defined in `android/app/proguard-rules.pro`.
+- **Rock-Solid Domain Alignment:** Strict compliance with American Heart Association (AHA/ACC 2017) blood pressure classifications and American Diabetes Association (ADA 2024) glycemic targets.
+- **Privacy & Security by Design:** Zero cloud tracking, no third-party telemetry, SQLite local persistence with disabled Android Auto Backup and device extraction rules preventing cleartext PHI leakage to external cloud backups.
+- **Automated Regression Suite:** 57 automated tests passing with zero static analysis lint errors on Dart 3.12 / Flutter 3.x.
+- **Release Build Hardening:** Custom ProGuard/R8 keep rules for Flutter, sqflite, printing, and file_picker; release signing verification prevents silent fallback to debug keystores.
 
-### Major Risks & Concerns
-1. **Font Encoding Crash on Localized PDFs (P0):** The PDF generator uses standard Type 1 fonts (Helvetica) that crash with an unhandled exception when processing Hindi (Devanagari) patient names, notes, or Unicode characters.
-2. **Onboarding State Ejection Bug (P0):** A state dependency bug in `OnboardingCompletedNotifier` causes any profile update or Riverpod invalidation during first-time use to reset the onboarding flag, immediately ejecting the user from the Dashboard back to Onboarding.
-3. **Typography Failure on Release Builds (P1):** Fonts are fetched over the network via Google Fonts without bundling assets, while the production Android manifest omits the `INTERNET` permission. Release builds cannot fetch web fonts and fallback to unstyled system defaults.
-4. **Unenforced Database Foreign Keys & Cascades (P1):** SQLite foreign key constraints are not enabled via `PRAGMA foreign_keys = ON;`, creating risks of orphaned records and relational inconsistency.
-5. **Accidental Record Deletion (P1):** History screen dismissible swipe deletes patient health records immediately without confirmation or an undo action.
+### Biggest Technical Concerns
+1. **Active Member State Reset on Profile Updates (P1):** `SelectedMemberIdNotifier` unconditionally falls back to the first family member (`members.first.id`) whenever `familyMembersProvider` re-emits, causing the UI to unexpectedly switch members after editing or updating a profile.
+2. **Incomplete Hindi Localization (P1):** Key user flows—including the Backup Restore confirmation modal, returning user onboarding screens, and clinical disclaimer cards—contain hardcoded English strings, breaking the localized experience for Hindi users.
+3. **Hypertensive Crisis Chart Viewport Clipping (P2):** Fixed `maxY: 190` in the BP trend chart clips life-threatening hypertensive crisis readings (>180–240 mmHg) off the top of the viewport.
+4. **Cold-Start Locale Race Condition (P2):** `LocaleNotifier` loads the saved locale asynchronously rather than leveraging the preloaded `sharedPreferencesProvider`, causing a visual layout/font flash on cold starts for Hindi users.
+5. **Missing In-App Privacy Policy (P2):** Google Play Developer Policy strictly requires an accessible privacy policy inside health-related apps.
 
 ---
 
 ## 2. Application Architecture
 
 ```
-                 ┌────────────────────────────────────────┐
-                 │          Presentation Layer            │
-                 │   HomeShell, Dashboard, Analytics,     │
-                 │     History, DoctorReport, Modals      │
-                 └───────────────────▲────────────────────┘
-                                     │
-                 ┌───────────────────┴────────────────────┐
-                 │       State Management (Riverpod)      │
-                 │  familyMembersProvider, bpReadings,    │
-                 │  glucoseReadings, locale, unit         │
-                 └───────────────────▲────────────────────┘
-                                     │
-                 ┌───────────────────┴────────────────────┐
-                 │            Repository Layer            │
-                 │            HealthRepository            │
-                 └─────────▲────────────────────▲─────────┘
-                           │                    │
-          ┌────────────────┴──────────┐  ┌──────┴──────────────────┐
-          │     Database Layer        │  │     Services Layer      │
-          │ DatabaseHelper (SQLite)   │  │ PdfReportService        │
-          │ family_members, bp_logs,  │  │ BackupRestoreService    │
-          │ glucose_logs              │  │ (Printing, FilePicker)  │
-          └───────────────────────────┘  └─────────────────────────┘
+                 ┌─────────────────────────────────────────────────────────┐
+                 │                   Presentation Layer                    │
+                 │   HomeShell (IndexedStack), DashboardScreen,            │
+                 │   AnalyticsScreen (fl_chart), HistoryScreen,            │
+                 │   DoctorReportScreen, SettingsScreen, OnboardingScreen  │
+                 └────────────────────────────▲────────────────────────────┘
+                                              │ watches / reads
+                 ┌────────────────────────────┴────────────────────────────┐
+                 │                State Management (Riverpod)              │
+                 │   familyMembersProvider, activeMemberProvider,          │
+                 │   bpReadingsProvider, glucoseReadingsProvider,          │
+                 │   bpStatsProvider, glucoseStatsProvider,                │
+                 │   glucoseUnitProvider, localeProvider,                  │
+                 │   onboardingCompletedProvider                           │
+                 └────────────────────────────▲────────────────────────────┘
+                                              │ delegates
+                 ┌────────────────────────────┴────────────────────────────┐
+                 │                     Repository Layer                    │
+                 │                     HealthRepository                    │
+                 └──────────────────▲─────────────────────▲────────────────┘
+                                    │                     │
+           ┌────────────────────────┴────┐      ┌─────────┴────────────────┐
+           │        Database Layer       │      │      Services Layer      │
+           │    DatabaseHelper (SQLite)  │      │    PdfReportService      │
+           │    • family_members         │      │    • printing, pdf       │
+           │    • bp_readings            │      │    BackupRestoreService  │
+           │    • glucose_readings       │      │    • file_picker         │
+           │    • Composite Indexes      │      │    • share_plus          │
+           │    • PRAGMA foreign_keys    │      └──────────────────────────┘
+           └─────────────────────────────┘
 ```
 
-- **Architecture Pattern:** Repository Pattern with Riverpod state management.
-- **State Management:** Riverpod 3.x using `AsyncNotifier` and `Notifier` for reactive state streams.
-- **Navigation:** Single shell (`HomeShell`) wrapping an `IndexedStack` with standard Material 3 bottom navigation bar and modal bottom sheets.
-- **Data Persistence:** Local SQLite database (`sqflite`) storing family member profiles, blood pressure records, and blood glucose logs.
-- **Internationalization:** Flutter `arb`-based localization (`app_en.arb`, `app_hi.arb`) supporting English and Hindi with dynamic font switching.
-- **Platform Support:** Target platform is Android; codebase relies on platform plugins (`sqflite`, `printing`, `share_plus`, `file_picker`, `path_provider`).
+- **Architecture:** Layered Repository Pattern with unidirectional data flow via Riverpod 3.x (`AsyncNotifier` and `Notifier`).
+- **State Management:** Riverpod providers manage active member selection, readings lists, summary statistics, and user preferences.
+- **Navigation:** Single activity shell (`HomeShell`) wrapping an `IndexedStack` with standard Material 3 `NavigationBar` and modal bottom sheets for input dialogs.
+- **Persistence:** Local SQLite database (`sqflite` v2.4.4, schema v4) with composite indexes on `(memberId, timestamp DESC)` and foreign key cascade deletion constraints.
+- **Typography & Localization:** Dual-language support (`en` and `hi`) utilizing bundled offline fonts (`Outfit` and `NotoSansDevanagari`), with dynamic font fallback and locale switching.
+- **Platform Support:** Android (API 21+); utilizes platform plugins for printing, native file picking, system sharing, and SQLite storage.
 
 ---
 
@@ -71,428 +80,448 @@ The application has a clean visual design, strong domain foundations adhering to
 
 | ID | Severity | Area | File | Issue | Impact | Recommended Fix |
 |:---|:---:|:---|:---|:---|:---|:---|
-| **CRIT-01** | **P0** | PDF / Crash | `lib/services/pdf_report_service.dart` | Default PDF font lacks Devanagari/Unicode glyph support | App crashes when generating doctor PDF for Hindi users or names | Load TTF Unicode font (e.g., Noto Sans / Devanagari) via `pw.Font.ttf` before building PDF |
-| **CRIT-02** | **P0** | State / UX | `lib/providers/health_providers.dart` | `OnboardingCompletedNotifier` rebuilds and resets `state` to `false` | Editing/adding a profile resets onboarding and kicks user back to welcome screen | Decouple notifier from watching members list and persist onboarding state in `SharedPreferences` |
-| **CRIT-03** | **P1** | Network / UI | `android/app/src/main/AndroidManifest.xml` | Release manifest missing `INTERNET` permission while `google_fonts` downloads at runtime | Release APK cannot download Google Fonts; broken styling and Hindi text failure | Bundle Google Fonts TTF files directly in `assets/fonts/` or add `INTERNET` permission |
-| **CRIT-04** | **P1** | Database | `lib/core/database/database_helper.dart` | SQLite `foreign_keys` PRAGMA is not enabled in `onConfigure` | Foreign key cascading constraints are disabled, risking orphaned records | Add `onConfigure: (db) async => await db.execute('PRAGMA foreign_keys = ON;')` |
-| **CRIT-05** | **P1** | Data Loss | `lib/ui/screens/history_screen.dart` | Dismissible swipe deletes clinical readings immediately without confirmation or undo | Users accidentally swiping lose medical readings permanently | Add `confirmDismiss` dialog or provide a functional `Undo` action in `SnackBar` |
-| **CRIT-06** | **P1** | Data Integrity | `lib/ui/widgets/quick_bp_modal.dart` & `quick_glucose_modal.dart` | No input range validation; allows `diastolic > systolic`; rapid double-taps insert duplicates | Corrupt/impossible medical logs recorded; duplicate entries generated | **RESOLVED**: Enforced physiological bounds (Sys: 40-300, Dia: 30-200, Sys > Dia, Pulse: 30-250, Glucose: 20-600 mg/dL / 1.1-33.3 mmol/L), dynamic inline error alerts, and async submission lock |
-| **CRIT-07** | **P2** | Performance | `lib/core/database/database_helper.dart` | No database indexes on `(memberId, timestamp)` | Full table scan on every query; sluggish history and chart queries over time | **RESOLVED**: Bumped DB version to 4, added composite indexes `(memberId, timestamp DESC)` in `_createDB` and `_upgradeDB`, verified with EXPLAIN QUERY PLAN |
-| **CRIT-08** | **P2** | UI / Layout | `lib/ui/screens/dashboard_screen.dart` | Unbounded `Text` inside unconstrained header `Row` | Right pixel overflow (yellow/black tape) on small screens or long member names | **RESOLVED**: Wrapped header title `Text` in `Flexible` with `TextOverflow.ellipsis` and `maxLines: 1` |
-| **CRIT-09** | **P2** | State / Settings | `lib/providers/health_providers.dart` | `glucoseUnitProvider` is in-memory only and does not persist to disk | Setting `mmol/L` resets back to `mg/dL` on every app restart | **RESOLVED**: Backed `GlucoseUnitNotifier` by `SharedPreferences` with synchronous startup read & sanitization |
-| **CRIT-10** | **P2** | Lifecycle | `lib/ui/screens/doctor_report_screen.dart` | Missing `catch` block on direct print; `setState` called after unmount | Flutter runtime exceptions if user navigates back while PDF renders | **RESOLVED**: Added localized error handling (`errorPrintPdf`, `errorGeneratePdf`) with `SnackBar`s, guarded `setState` with `if (mounted)`, and localized the direct print button |
-| **CRIT-11** | **P2** | Build / Release | `android/app/build.gradle.kts` | Silent fallback to debug keystore when `key.properties` is missing | Accidental debug signing of release builds, failing Google Play upload | **RESOLVED**: Removed silent debug fallback; added pre-execution task graph validation enforcing required credentials and keystore file existence with actionable GradleException |
-| **CRIT-12** | **P2** | Privacy / PHI | `lib/services/backup_restore_service.dart`, `AndroidManifest.xml` | Sensitive medical records written in plaintext JSON; no `allowBackup` rules in manifest | Patient medical data exposed in cleartext and potentially synced to third-party clouds | **RESOLVED**: Disabled Android Auto Backup with `allowBackup="false"` and `data_extraction_rules.xml`, added localized export PHI security warning dialog, ensured immediate cache file cleanup in `finally` block, and hardened JSON restore validation against corrupt or orphaned payloads |
+| **CRIT-13** | **P1** | State / UX | `lib/providers/health_providers.dart` | `SelectedMemberIdNotifier.build()` unconditionally resets `state` to `members.first.id` | Updating or editing a non-first family member jumps active selection back to first profile | Preserve existing `state` if it still exists in the refreshed members list |
+| **CRIT-14** | **P1** | I18n / UX | `lib/services/backup_restore_service.dart`, `onboarding_screen.dart` | Hardcoded English strings across Restore modal, Onboarding cards, and Settings disclaimer | Hindi users encounter English dialogs and prompts during backup restore and setup | Extract hardcoded strings to `app_en.arb` and `app_hi.arb` and use `AppLocalizations` |
+| **CRIT-15** | **P2** | Clinical / UI | `lib/ui/screens/analytics_screen.dart` | Hardcoded `minY: 50, maxY: 190` on Blood Pressure line chart | Hypertensive crisis readings (>180–240 mmHg) or severe hypotension (<50 mmHg) clip off-screen | Dynamically compute `minY` and `maxY` with clinical bounds padding |
+| **CRIT-16** | **P2** | State / Perf | `lib/providers/locale_provider.dart` | `LocaleNotifier.build()` performs unawaited async load instead of reading `sharedPreferencesProvider` | Cold start renders English first, causing visual flash and font switch to Hindi | Inject and read `sharedPreferencesProvider` synchronously in `build()` |
+| **CRIT-17** | **P2** | Concurrency | `lib/core/database/database_helper.dart` | `exportToJson()` runs 3 separate queries outside of a transaction | Concurrent writes or deletes during export can generate inconsistent or orphaned JSON | Wrap the 3 table reads inside an atomic `db.transaction` read snapshot |
+| **CRIT-18** | **P2** | Compliance | `lib/ui/screens/settings_screen.dart` | Missing in-app Privacy Policy link required by Google Play Health App Policy | App rejection during Google Play Store review for health data apps | Add a dedicated Privacy Policy section with offline modal viewer or URL launcher |
+| **CRIT-19** | **P2** | PDF / Crash | `lib/services/pdf_report_service.dart` | Unsanitized patient names in export filenames & unhandled emoji glyphs | Sharing fails on special filename characters (`/`, `\`); emojis in notes cause PDF font exceptions | Sanitize filenames to alphanumeric/underscores and strip unsupported emoji glyphs |
+| **CRIT-20** | **P2** | QA / Testing | `test/` | Zero test coverage for `AnalyticsScreen`, `SettingsScreen`, and `HomeShell` | Unverified chart touch handlers, circadian averages, and profile deletion flows | Add widget tests for analytics calculations, tab switching, and settings profile management |
+| **CRIT-21** | **P3** | UX | `lib/ui/screens/history_screen.dart` | Tap shows "Long press to edit/delete" SnackBar instead of immediate action | Clunky touch interaction; users expect immediate feedback or modal bottom sheet on tap | Open card action sheet directly on tap, or provide visible overflow menu icon (`Icons.more_vert`) |
+| **CRIT-22** | **P3** | UI / Clarity | `lib/ui/screens/dashboard_screen.dart` | Code comment calls card "7-Day Health Snapshot", but calculation aggregates all-time readings | Discrepancy between code documentation and actual aggregation logic | Filter readings by past 7 days or clearly document that the snapshot is all-time |
+| **CRIT-23** | **P3** | Chart / Stability | `lib/ui/screens/analytics_screen.dart` | Glucose chart does not guard against `minY == maxY` when only 1 reading exists | FlChart single-spot horizontal/vertical flatlining | Provide fallback bounds (`val - 20` to `val + 20`) when single reading is plotted |
+| **CRIT-24** | **P3** | Resilience | `lib/main.dart` | Raw unlocalized error message `Error loading profiles: $err` without retry action | User is permanently stuck on white error screen if SQLite cold init encounters IO error | Provide a localized error card with a "Retry" button that invalidates the provider |
+| **CRIT-25** | **P4** | Dependencies | `pubspec.yaml` | `google_fonts` and `cupertino_icons` listed as direct dependencies but unused | Unnecessary package dependencies and pub resolution bloat | Remove `google_fonts` and `cupertino_icons` from `pubspec.yaml` |
+| **CRIT-26** | **P4** | Dead Code | `lib/l10n/generated/` | Orphaned duplicate localization files from legacy generator configuration | Developer confusion; outdated arb-generated files sitting in repository | Delete unused `lib/l10n/generated/` directory |
+| **CRIT-27** | **P4** | Metadata | `pubspec.yaml` | Boilerplate description `"A new Flutter project."` | Unprofessional project metadata | Update description to reflect app purpose |
+| **CRIT-28** | **P4** | Maintainability | `lib/ui/screens/settings_screen.dart` | Hardcoded `'v2.0.0 (Build 4)'` string in footer | Version desynchronization on future app updates | Read version dynamically via `package_info_plus` or centralize in a version constant |
 
 ---
 
 ## 4. Detailed Findings
 
-### [CRIT-01] PDF Generation Crash on Non-ASCII / Hindi Characters
-**Severity:** P0 — BLOCKER  
-**Category:** Runtime Crash / Core Functionality  
-**File:** [pdf_report_service.dart](file:///g:/Code/health_tracker/lib/services/pdf_report_service.dart#L19-L210)  
-**Location:** Lines 19–210  
-**Problem:** `PdfReportService.generateReport()` builds a document using the default Type 1 fonts (Helvetica). The `pdf` package's default fonts only encode standard WinAnsi characters. If a patient's name is in Hindi (e.g. "राहुल" or "पापा"), or if doctor/medication notes contain Hindi or non-Latin Unicode characters, `pdf.save()` immediately throws `Exception: This font does not support the character U+09xx`.  
-**Why it matters:** The Doctor Report PDF is a headline feature of the application. Hindi localization is officially supported in the app. Attempting to export a PDF for any user using Hindi will crash the app immediately.  
-**Evidence:**
+### [CRIT-13] Active Member State Reset on Profile Updates
+**Severity:** P1 — CRITICAL  
+**Category:** State Management / UX  
+**File:** [health_providers.dart](file:///g:/Code/health_tracker/lib/providers/health_providers.dart#L124-L135)  
+**Location:** Lines 124–135  
+**Problem:** `SelectedMemberIdNotifier.build()` watches `familyMembersProvider`. When `familyMembersProvider` re-emits (such as when adding, editing, or updating any profile), `build()` re-executes and unconditionally returns `members.first.id`.
 ```dart
-// lib/services/pdf_report_service.dart
-final pdf = pw.Document(); // Uses default Helvetica
-// ...
-_buildPatientAttribute('Patient Name', member.name); // Crashes if name contains Hindi characters
-```
-**Recommended solution:** Load a Unicode-compliant TrueType font bundle (such as `NotoSansDevanagari` or `Roboto/NotoSans`) using `PdfGoogleFonts` from the `printing` package, or bundle the TTF asset:
-```dart
-final font = await PdfGoogleFonts.notoSansDevanagariRegular();
-final boldFont = await PdfGoogleFonts.notoSansDevanagariBold();
-final pdf = pw.Document(theme: pw.ThemeData.withFont(base: font, bold: boldFont));
-```
-**Risk of fixing:** Low.
-
----
-
-### [CRIT-02] OnboardingCompletedNotifier Resets to False on Profile Invalidation
-**Severity:** P0 — BLOCKER  
-**Category:** State Management / Navigation Flow  
-**File:** [health_providers.dart](file:///g:/Code/health_tracker/lib/providers/health_providers.dart#L60-L79), [main.dart](file:///g:/Code/health_tracker/lib/main.dart#L43-L48)  
-**Location:** Lines 60–79 in `health_providers.dart`  
-**Problem:** `OnboardingCompletedNotifier.build()` watches `familyMembersProvider`. When an initial user starts with 0 profiles, `_initialHadMembers` is set to `false`. Once the first member is saved and "Continue to Dashboard" is tapped, `complete()` sets `state = true`. However, whenever `familyMembersProvider` is subsequently invalidated (e.g., when adding a 2nd member from Dashboard or updating a profile), Riverpod re-runs `OnboardingCompletedNotifier.build()`. In `build()`, `_initialized` is already `true`, so it returns `_initialHadMembers` (`false`). This forces `onboardingCompletedProvider` back to `false`. In `main.dart`, `if (members.isEmpty || !hasCompletedOnboarding)` immediately swaps the active screen to `OnboardingScreen`, unexpectedly booting the user out of the app.  
-**Why it matters:** Users who add a second family member or edit their profile are abruptly kicked out of the main dashboard back into the onboarding screen.  
-**Evidence:**
-```dart
-// lib/providers/health_providers.dart
-class OnboardingCompletedNotifier extends Notifier<bool> {
-  bool _initialized = false;
-  bool _initialHadMembers = false;
-
+class SelectedMemberIdNotifier extends Notifier<String?> {
   @override
-  bool build() {
+  String? build() {
     final members = ref.watch(familyMembersProvider).asData?.value;
-    if (!_initialized && members != null) {
-      _initialized = true;
-      _initialHadMembers = members.isNotEmpty; // Evaluated as false on first install
+    if (members != null && members.isNotEmpty) {
+      return members.first.id; // Bug: Always resets to index 0!
     }
-    return _initialHadMembers; // Re-run resets state to false!
+    return null;
   }
+  void select(String? id) => state = id;
 }
 ```
-**Recommended solution:** Remove `ref.watch(familyMembersProvider)` from inside `build()`. Instead, persist a dedicated boolean `has_completed_onboarding` in `SharedPreferences` and load it asynchronously upon initialization.  
-**Risk of fixing:** Low.
-
----
-
-### [CRIT-03] Google Fonts Network Dependency Without Release INTERNET Permission
-**Severity:** P1 — CRITICAL  
-**Category:** Configuration / Asset Delivery  
-**File:** [AndroidManifest.xml](file:///g:/Code/health_tracker/android/app/src/main/AndroidManifest.xml), [app_theme.dart](file:///g:/Code/health_tracker/lib/core/theme/app_theme.dart#L10-L13)  
-**Location:** `android/app/src/main/AndroidManifest.xml`  
-**Problem:** The app uses `google_fonts` to load Outfit and Noto Sans Devanagari. Google Fonts attempts to download fonts at runtime from Google CDN servers (`fonts.gstatic.com`). However, `android/app/src/main/AndroidManifest.xml` does NOT declare `<uses-permission android:name="android.permission.INTERNET"/>` (the permission was only added to `debug/AndroidManifest.xml`). On release builds, the Android OS blocks all network requests from the app.  
-**Why it matters:** In release mode on real devices, `google_fonts` will fail silently or throw socket permission exceptions. The app will fall back to default platform system fonts, which look inconsistent and often lack proper Devanagari glyphs on older devices. Additionally, an offline app should never depend on network calls for essential UI typography.  
-**Evidence:**
-- `android/app/src/main/AndroidManifest.xml`: Lines 1–46 contain zero permission tags.
-- `android/app/src/debug/AndroidManifest.xml`: Line 6 contains `android.permission.INTERNET`.
-**Recommended solution:** Download the required TTF font files (`Outfit` and `NotoSansDevanagari`), place them in `assets/fonts/`, and register them in `pubspec.yaml`. Alternatively, if runtime font fetching is acceptable, declare `android.permission.INTERNET` in `src/main/AndroidManifest.xml`.  
-**Risk of fixing:** Low.
-
----
-
-### [CRIT-04] Missing SQLite Foreign Key Enforcement & Cascades
-**Severity:** P1 — CRITICAL  
-**Category:** Database / Data Integrity  
-**File:** [database_helper.dart](file:///g:/Code/health_tracker/lib/core/database/database_helper.dart#L24-L30)  
-**Location:** Lines 24–30 & 117–122  
-**Problem:** SQLite disables foreign key constraint enforcement by default. To enable cascading deletes and relational checks, `PRAGMA foreign_keys = ON;` must be executed during database connection configuration (`onConfigure`). Because `onConfigure` is omitted in `_initDB`, table declarations like `FOREIGN KEY (memberId) REFERENCES family_members (id) ON DELETE CASCADE` have no effect. Additionally, in `deleteMember()`, records are deleted sequentially without an atomic database transaction.  
-**Why it matters:** If an app is killed while deleting a member, or if a bug inserts a reading with an invalid `memberId`, orphaned records will persist in the database, leading to inconsistent analytics calculations and ghost logs.  
-**Evidence:**
+**Why it matters:** If a user selects their second family member ("Mom") and edits her date of birth or color in Settings or Dashboard, saving the changes triggers `updateMember()`, which invalidates `familyMembersProvider`. `SelectedMemberIdNotifier` immediately switches the active user back to "Dad" (the first member). This is extremely jarring and creates perceived data loss.  
+**Evidence:** [health_providers.dart#L124-L135](file:///g:/Code/health_tracker/lib/providers/health_providers.dart#L124-L135)  
+**Recommended solution:** Check whether the current `state` is still present in the updated `members` list before defaulting to `members.first.id`:
 ```dart
-// lib/core/database/database_helper.dart
-return await openDatabase(
-  path,
-  version: 3,
-  onCreate: _createDB,
-  onUpgrade: _upgradeDB,
-  // onConfigure is MISSING
-);
+class SelectedMemberIdNotifier extends Notifier<String?> {
+  @override
+  String? build() {
+    final members = ref.watch(familyMembersProvider).asData?.value;
+    if (members == null || members.isEmpty) return null;
+    if (state != null && members.any((m) => m.id == state)) {
+      return state;
+    }
+    return members.first.id;
+  }
+  void select(String? id) => state = id;
+}
 ```
-**Recommended solution:**
-```dart
-onConfigure: (db) async {
-  await db.execute('PRAGMA foreign_keys = ON;');
-},
-```
-Wrap `deleteMember` operations in a `db.transaction(...)`.  
-**Risk of fixing:** Low.
+**Risk of fixing:** Low. Pure state logic change.
 
 ---
 
-### [CRIT-05] History Screen Destructive Swipe Without Confirmation or Undo
+### [CRIT-14] Incomplete Internationalization (Hardcoded English Strings)
 **Severity:** P1 — CRITICAL  
-**Category:** UX / Data Loss  
-**File:** [history_screen.dart](file:///g:/Code/health_tracker/lib/ui/screens/history_screen.dart#L151-L168)  
-**Location:** Lines 151–168 & 273–290  
-**Problem:** In `HistoryScreen`, each BP and Glucose tile is wrapped in a `Dismissible` widget. Swiping horizontally deletes the medical reading instantly from SQLite. There is no `confirmDismiss` check, and the `SnackBar` displayed contains no "Undo" mechanism.  
-**Why it matters:** While scrolling down a dense list on touchscreen phones, users frequently make slight diagonal or horizontal gestures. Accidental swipes will permanently erase clinical logs.  
+**Category:** Internationalization / User Experience  
+**File:** [backup_restore_service.dart](file:///g:/Code/health_tracker/lib/services/backup_restore_service.dart#L180-L268), [onboarding_screen.dart](file:///g:/Code/health_tracker/lib/ui/screens/onboarding_screen.dart#L380-L555), [settings_screen.dart](file:///g:/Code/health_tracker/lib/ui/screens/settings_screen.dart#L293-L310)  
+**Location:** Multiple files  
+**Problem:** While the app has `app_en.arb` and `app_hi.arb`, critical parts of the UI remain hardcoded in English:
+1. `backup_restore_service.dart`: The "Confirm Restore" modal dialog, "Family Profiles", "BP Readings", "Blood Sugar Readings", "Existing data with matching records...", "Restore Now", "Data restored successfully!", and error SnackBars are 100% hardcoded in English.
+2. `onboarding_screen.dart`: The "Ready to Start!" section, "Add Another Family Member", "Restore more records from backup file", "Continue to Dashboard", and "Already have saved records?" are hardcoded in English.
+3. `settings_screen.dart`: "Medical Standard Alignment" title and disclaimer bullets are hardcoded in English.
+4. `metric_summary_card.dart`: "No readings yet" and "Log" button text are hardcoded in English.  
+**Why it matters:** The app advertises complete Hindi localization. A Hindi-speaking user navigating Onboarding or restoring a medical backup is suddenly presented with dense English legal and clinical terms, defeating the purpose of dual-language support.  
 **Evidence:**
+- [backup_restore_service.dart#L190-L265](file:///g:/Code/health_tracker/lib/services/backup_restore_service.dart#L190-L265)
+- [onboarding_screen.dart#L438-L550](file:///g:/Code/health_tracker/lib/ui/screens/onboarding_screen.dart#L438-L550)
+- [settings_screen.dart#L297-L308](file:///g:/Code/health_tracker/lib/ui/screens/settings_screen.dart#L297-L308)  
+**Recommended solution:** Define corresponding keys in `lib/l10n/app_en.arb` and `lib/l10n/app_hi.arb` and replace all static strings with `l10n.*`.  
+**Risk of fixing:** Low.
+
+---
+
+### [CRIT-15] Hypertensive Crisis & Hypotension Chart Viewport Clipping
+**Severity:** P2 — HIGH  
+**Category:** Clinical Safety / UI  
+**File:** [analytics_screen.dart](file:///g:/Code/health_tracker/lib/ui/screens/analytics_screen.dart#L280-L281)  
+**Location:** Lines 280–281  
+**Problem:** In `AnalyticsScreen`, the blood pressure line chart hardcodes fixed vertical axis limits:
 ```dart
-// lib/ui/screens/history_screen.dart
-return Dismissible(
-  key: Key(bp.id),
-  direction: DismissDirection.endToStart,
-  onDismissed: (_) {
-    ref.read(bpReadingsProvider.notifier).deleteReading(bp.id);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l10n.readingDeleted)), // No Undo action!
-    );
-  },
-  // ...
+minY: 50,
+maxY: 190,
 ```
-**Recommended solution:** Add `confirmDismiss` requesting confirmation before deletion, or keep a copy of the deleted reading and provide an `Undo` button in the `SnackBar`.  
-**Risk of fixing:** Low.
-
----
-
-### [CRIT-06] Unbounded Clinical Input Validation & Race Conditions
-**Severity:** P1 — CRITICAL  
-**Status:** **RESOLVED**  
-**Category:** Clinical Integrity / Concurrency  
-**File:** [quick_bp_modal.dart](file:///g:/Code/health_tracker/lib/ui/widgets/quick_bp_modal.dart#L381-L420), [quick_glucose_modal.dart](file:///g:/Code/health_tracker/lib/ui/widgets/quick_glucose_modal.dart#L403-L434)  
-**Location:** Lines 381–420 (BP) & 403–434 (Glucose)  
-**Problem:**
-1. The numeric text inputs lack range boundaries and relational validation:
-   - Systolic can be lower than Diastolic (e.g. 70/120), which is physiologically impossible.
-   - Values like `0`, negative numbers, or `9999` are parsed or defaulted silently.
-   - If a user deletes the text and presses Save, it silently saves `120/80` or `95` without warning.
-2. The submit buttons do not disable themselves while processing:
-   - Rapid double-tapping triggers multiple asynchronous database inserts with different UUIDs, causing duplicate records.  
-**Why it matters:** Faulty, impossible, or duplicate health entries corrupt the patient's medical history and invalidate the doctor's clinical report.  
-**Evidence:**
+**Why it matters:** According to AHA/ACC guidelines, a Hypertensive Crisis is diagnosed when Systolic exceeds 180 mmHg or Diastolic exceeds 120 mmHg. Patients experiencing severe hypertensive episodes can record systolic pressures of 195–230 mmHg. Because `maxY` is capped at 190, any reading higher than 190 mmHg is rendered outside the chart viewport and clipped, hiding the acute spike from the patient and physician. Similarly, diastolic readings under 50 mmHg are clipped below the bottom axis.  
+**Evidence:** [analytics_screen.dart#L280-L281](file:///g:/Code/health_tracker/lib/ui/screens/analytics_screen.dart#L280-L281)  
+**Recommended solution:** Dynamically compute `minY` and `maxY` based on the dataset:
 ```dart
-// quick_bp_modal.dart
-final sys = int.tryParse(_sysController.text) ?? 120; // Silently invents 120
-final dia = int.tryParse(_diaController.text) ?? 80;  // Silently invents 80
-// No check: if (dia >= sys) error!
+double computedMinY = 50.0;
+double computedMaxY = 190.0;
+for (final r in recent) {
+  if (r.systolic + 15 > computedMaxY) computedMaxY = (r.systolic + 15).toDouble();
+  if (r.diastolic - 10 < computedMinY) computedMinY = (r.diastolic - 10).clamp(20, 50).toDouble();
+}
 ```
-**Resolution Implemented:**
-- Domain boundaries added to `ClinicalStandards`: Systolic 40–300, Diastolic 30–200, Systolic > Diastolic (minimum pulse pressure 10 mmHg), Pulse 30–250, Glucose 20–600 mg/dL or 1.1–33.3 mmol/L.
-- Blank and malformed inputs rejected without default fallbacks.
-- Dynamic inline error highlighting on input cards and error message banners above Save button.
-- Async submission lock (`_isSubmitting`) preventing duplicate database inserts and replacing button text with loading spinner.
-- Full localization in both English and Hindi.
-- Verified with 12 comprehensive unit and widget tests in `test/clinical_validation_and_concurrency_test.dart`.
 **Risk of fixing:** Low.
 
 ---
 
-### [CRIT-07] Missing Database Indexes on Query Columns
+### [CRIT-16] Cold-Start Locale Async Race Condition & Typography Flash
 **Severity:** P2 — HIGH  
-**Status:** **RESOLVED**  
-**Category:** Database Performance  
-**File:** [database_helper.dart](file:///g:/Code/health_tracker/lib/core/database/database_helper.dart#L44-L88)  
-**Location:** Lines 44–88  
-**Problem:** The `bp_readings` and `glucose_readings` tables have no indexes on `memberId` or `timestamp`. Every dashboard load, history query, stats provider, and doctor report executes `WHERE memberId = ? ORDER BY timestamp DESC`.  
-**Why it matters:** As active users log 3–5 readings per day over several months (hundreds or thousands of rows per family member), SQLite must execute unindexed full-table sequential scans and in-memory temporary sorts. This causes frame drops and sluggish query response times.  
-**Resolution Implemented:**
-- Bumped database version to `4` in `DatabaseHelper._initDB`.
-- Added composite indexes `idx_bp_member_time` on `bp_readings(memberId, timestamp DESC)` and `idx_glucose_member_time` on `glucose_readings(memberId, timestamp DESC)` in both `_createDB` and the `_upgradeDB` version 4 migration block.
-- Verified fresh creation, v3-to-v4 migration integrity, and `EXPLAIN QUERY PLAN` verifying index search usage in `test/database_indexes_test.dart`.
+**Category:** State Management / Performance  
+**File:** [locale_provider.dart](file:///g:/Code/health_tracker/lib/providers/locale_provider.dart#L8-L24)  
+**Location:** Lines 8–24  
+**Problem:** `LocaleNotifier.build()` synchronously returns `const Locale('en')` and initiates an unawaited async call `_loadSavedLocale()`.
+```dart
+class LocaleNotifier extends Notifier<Locale> {
+  @override
+  Locale build() {
+    _loadSavedLocale(); // Unawaited asynchronous call
+    return const Locale('en');
+  }
+  ...
+```
+Furthermore, `LocaleNotifier` calls `SharedPreferences.getInstance()` rather than using `ref.watch(sharedPreferencesProvider)`.  
+**Why it matters:** On cold start for a Hindi-speaking user, the app first mounts with English locale and Outfit font family, then milliseconds later `_loadSavedLocale()` updates state to Hindi, causing an observable flicker, text re-layout, and font swap (Outfit -> NotoSansDevanagari).  
+**Evidence:** [locale_provider.dart#L8-L24](file:///g:/Code/health_tracker/lib/providers/locale_provider.dart#L8-L24)  
+**Recommended solution:** Read the pre-injected `sharedPreferencesProvider` synchronously in `build()`:
+```dart
+class LocaleNotifier extends Notifier<Locale> {
+  @override
+  Locale build() {
+    try {
+      final prefs = ref.watch(sharedPreferencesProvider);
+      final savedCode = prefs.getString(_kLocalePrefKey);
+      if (savedCode == 'hi' || savedCode == 'en') {
+        return Locale(savedCode!);
+      }
+    } catch (_) {}
+    return const Locale('en');
+  }
+```
 **Risk of fixing:** Low.
 
 ---
 
-### [CRIT-08] Unconstrained Member Name in Dashboard Header Pixel Overflow
+### [CRIT-17] Database Export Concurrency & Non-Atomic Snapshot
 **Severity:** P2 — HIGH  
-**Status:** **RESOLVED**  
-**Category:** UI / Responsive Layout  
-**File:** [dashboard_screen.dart](file:///g:/Code/health_tracker/lib/ui/screens/dashboard_screen.dart#L54-L82)  
-**Location:** Lines 54–82  
-**Problem:** The header row contains `Row(children: [Text(member != null ? '${member.avatarEmoji} ${member.name}' : ...), ... Container(...)])`. The `Text` widget has no `Flexible` or `Expanded` wrapper.  
-**Why it matters:** On smaller phones (e.g. 360dp width) or when names are long (e.g. "Grandmother Elizabeth"), the header overflows horizontally, triggering yellow-and-black RenderFlex overflow stripes.  
-**Resolution Implemented:** Wrapped the header title `Text` in `Flexible(child: Text(..., overflow: TextOverflow.ellipsis, maxLines: 1))`. The age badge maintains its intrinsic width and padding. Verified with a narrow 320dp viewport widget test in `test/dashboard_header_overflow_test.dart`.  
+**Category:** Database / Concurrency  
+**File:** [database_helper.dart](file:///g:/Code/health_tracker/lib/core/database/database_helper.dart#L225-L240)  
+**Location:** Lines 225–240  
+**Problem:** `exportToJson()` issues 3 sequential queries across `family_members`, `bp_readings`, and `glucose_readings` without an enclosing read transaction.  
+**Why it matters:** If a member profile is deleted or modified while the queries are running, the exported JSON file can contain orphaned readings whose foreign key references a member omitted from `family_members`. Attempting to import this backup later will fail foreign key verification.  
+**Evidence:** [database_helper.dart#L225-L240](file:///g:/Code/health_tracker/lib/core/database/database_helper.dart#L225-L240)  
+**Recommended solution:** Wrap the three reads inside a single database transaction block:
+```dart
+Future<String> exportToJson() async {
+  final db = await instance.database;
+  return await db.transaction((txn) async {
+    final members = await txn.query('family_members');
+    final bp = await txn.query('bp_readings');
+    final glucose = await txn.query('glucose_readings');
+    return jsonEncode({
+      'version': 1,
+      'exportedAt': DateTime.now().toIso8601String(),
+      'family_members': members,
+      'bp_readings': bp,
+      'glucose_readings': glucose,
+    });
+  });
+}
+```
 **Risk of fixing:** Low.
 
 ---
 
-### [CRIT-09] Glucose Unit Preference Does Not Persist Across App Restarts
+### [CRIT-18] Missing In-App Privacy Policy Link for Google Play Compliance
 **Severity:** P2 — HIGH  
-**Status:** **RESOLVED**  
-**Category:** State Management / UX  
-**File:** [health_providers.dart](file:///g:/Code/health_tracker/lib/providers/health_providers.dart#L13-L22)  
-**Location:** Lines 13–22  
-**Problem:** `GlucoseUnitNotifier` stores the preferred unit in memory with a default of `'mg/dL'`. Unlike `LocaleNotifier`, it does not read from or write to `SharedPreferences`.  
-**Why it matters:** Patients in the UK, Canada, Australia, and European countries use `mmol/L`. Every time they kill the app or restart their phone, the app reverts to `mg/dL`, causing extreme confusion and potential misinterpretation of blood sugar levels.  
-**Resolution Implemented:** Implemented persistent storage in `GlucoseUnitNotifier` using `sharedPreferencesProvider`. In `build()`, the preference is read synchronously from pre-injected `SharedPreferences` (ensuring immediate initial rendering without UI flicker), with strict sanitization (`'mg/dL'` or `'mmol/L'`). `setUnit` persists updates asynchronously. Verified with unit tests covering default values, pre-seeded startup, mutation, restart simulation, and corrupt value fallback in `test/glucose_unit_persistence_test.dart`.  
+**Category:** Google Play Store Policy / Legal  
+**File:** [settings_screen.dart](file:///g:/Code/health_tracker/lib/ui/screens/settings_screen.dart)  
+**Problem:** The app collects and exports Personal Health Information (blood pressure, blood glucose, timestamps, family member names, dates of birth). Google Play Developer Policy requires all apps that handle health or personal data to provide an explicit Privacy Policy link in both the Play Console and within the app itself.  
+**Why it matters:** Submitting a medical tracking app to Google Play without an in-app privacy policy link is a frequent cause of store policy rejection.  
+**Evidence:** `settings_screen.dart` has clinical disclaimers, but no Privacy Policy link.  
+**Recommended solution:** Add a "Privacy & Data Ownership" tile in `SettingsScreen` that opens a dialog or web view detailing that all data stays 100% on-device and is never transmitted to any remote servers.  
 **Risk of fixing:** Low.
 
 ---
 
-### [CRIT-10] DoctorReportScreen Unhandled Exception and Unmounted setState
+### [CRIT-19] Unsanitized Filenames & Potential Emoji Font Failures in PDF Export
 **Severity:** P2 — HIGH  
-**Status:** **RESOLVED**  
-**Category:** Error Handling / Widget Lifecycle  
-**File:** [doctor_report_screen.dart](file:///g:/Code/health_tracker/lib/ui/screens/doctor_report_screen.dart#L154-L204)  
-**Location:** Lines 154–204  
-**Problem:** The "Direct Print Report" action invoked `PdfReportService.generateReport()` inside a `try` block that had a `finally` clause but NO `catch` clause. If PDF generation failed, the exception was unhandled. Additionally, both the Share and Print button `finally` blocks executed `setState(() => _isGenerating = false)` unconditionally without verifying `if (mounted)`.  
-**Why it matters:** If a user tapped "Direct Print" and navigated back while PDF generation was running or if generation threw an error, the app logged a Flutter framework exception (`setState() called after dispose()`) or crashed.  
-**Resolution Implemented:** 
-1. Added full `catch (e)` block to Direct Print displaying localized `l10n.errorPrintPdf` in a `SnackBar`.
-2. Updated Share PDF error display to use localized `l10n.errorGeneratePdf`.
-3. Guarded all `setState(() => _isGenerating = false)` in both `finally` blocks with `if (mounted)`.
-4. Guarded `ScaffoldMessenger.of(context)` with `if (context.mounted)`.
-5. Replaced hardcoded `'Direct Print Report'` text label with `l10n.directPrintReport`.
-6. Added localized keys to both `app_en.arb` and `app_hi.arb`.
-7. Verified with widget lifecycle tests in `test/doctor_report_lifecycle_test.dart` testing direct print errors, share errors, and screen unmounting during active PDF generation.  
+**Category:** PDF Generation / Robustness  
+**File:** [pdf_report_service.dart](file:///g:/Code/health_tracker/lib/services/pdf_report_service.dart#L277-L283), [doctor_report_screen.dart](file:///g:/Code/health_tracker/lib/ui/screens/doctor_report_screen.dart#L200)  
+**Location:** Lines 277–283  
+**Problem:** `shareOrPrintPdf` uses raw `patientName` directly in the output filename:
+```dart
+filename: 'Health_Report_${patientName}_${DateFormat('yyyyMMdd').format(DateTime.now())}.pdf'
+```
+If `patientName` contains slashes (`/`), colons (`:`), or invalid filesystem characters, temporary file creation fails on Android. Furthermore, if a user enters an emoji in their name or notes, the `pdf` package font engine throws `Exception: This font does not support the character U+...` because TrueType fonts bundled for Latin/Devanagari do not include emoji glyphs.  
+**Why it matters:** Although caught in `doctor_report_screen.dart`, PDF generation fails and the user cannot export reports for patients with special characters or emojis.  
+**Evidence:** [pdf_report_service.dart#L277-L283](file:///g:/Code/health_tracker/lib/services/pdf_report_service.dart#L277-L283)  
+**Recommended solution:** Sanitize patient names for filenames (replace non-alphanumeric characters with `_`) and strip unsupported emoji glyphs from notes prior to passing strings to `pw.Text`.  
 **Risk of fixing:** Low.
 
 ---
 
-### [CRIT-11] Silent Fallback to Debug Keystore in Release Gradle Builds
+### [CRIT-20] Missing Test Coverage for Primary UI Screens
 **Severity:** P2 — HIGH  
-**Status:** **RESOLVED**  
-**Category:** Build & Release Configuration  
-**File:** [build.gradle.kts](file:///g:/Code/health_tracker/android/app/build.gradle.kts#L44-L115)  
-**Location:** `android/app/build.gradle.kts`  
-**Problem:** The `buildTypes.release` block checks `if (keystorePropertiesFile.exists())`. If `key.properties` is missing, it falls back to `signingConfigs.getByName("debug")`.  
-**Why it matters:** CI pipelines or developers running `flutter build appbundle --release` without configuring `key.properties` will silently produce a release bundle signed with the Android debug certificate. Google Play will reject this upload, or worse, if published via an internal track, users cannot upgrade without signature collisions.  
-**Recommended solution:** If `key.properties` is absent during a release build, fail the build explicitly with a helpful error message instructing the developer to configure signing.  
-**Resolution:** Removed debug keystore fallback from `buildTypes.release`. Added strict pre-execution validation via `gradle.taskGraph.whenReady` checking that `key.properties` exists, required properties (`keyAlias`, `keyPassword`, `storeFile`, `storePassword`) are set and not template placeholders, and the keystore file exists on disk. If unconfigured, Gradle halts immediately with a clear, actionable error pointing to `android/key.properties.example`.  
+**Category:** Testing & Quality Assurance  
+**File:** `test/`  
+**Problem:** While domain logic, clinical validation, database indexes, and foreign keys have thorough unit tests, `AnalyticsScreen`, `SettingsScreen`, and `HomeShell` have zero widget test coverage.  
+**Why it matters:** Regressions in circadian pattern calculations, tab switching, and profile deletion confirmation can go undetected during future refactoring.  
+**Evidence:** Grep search in `test/` shows no references to `AnalyticsScreen` or `SettingsScreen`.  
+**Recommended solution:** Add focused widget tests verifying:
+1. `AnalyticsScreen` renders both tabs and computes circadian averages correctly.
+2. `SettingsScreen` confirms member deletion and triggers provider deletion.
+3. `HomeShell` navigates across all 5 destinations without throwing layout exceptions.  
+**Risk of fixing:** None (test code only).
+
+---
+
+### [CRIT-21] History Screen Tap-to-Hint vs Immediate Action Sheet
+**Severity:** P3 — MEDIUM  
+**Category:** User Experience / Discoverability  
+**File:** [history_screen.dart](file:///g:/Code/health_tracker/lib/ui/screens/history_screen.dart#L163-L172)  
+**Problem:** When a user taps a reading card in `HistoryScreen`, instead of performing an action or opening details, the app hides and displays a SnackBar: `"Long press card to edit or delete."`  
+**Why it matters:** On mobile devices, tap is the primary interaction paradigm. Tapping a card only to be told to long-press feels counterintuitive and sluggish.  
+**Recommended solution:** Either open the action sheet directly on `onTap`, or provide a trailing 3-dots button (`Icons.more_vert`) on each card.  
 **Risk of fixing:** Low.
 
 ---
 
-### [CRIT-12] Plaintext Unencrypted Health Backups & Android Auto Backup PHI Exposure
-**Severity:** P2 — HIGH  
-**Status:** **RESOLVED**  
-**Category:** Security / Privacy (HIPAA / GDPR / PHI)  
-**File:** [backup_restore_service.dart](file:///g:/Code/health_tracker/lib/services/backup_restore_service.dart#L14-L95), [AndroidManifest.xml](file:///g:/Code/health_tracker/android/app/src/main/AndroidManifest.xml), [data_extraction_rules.xml](file:///g:/Code/health_tracker/android/app/src/main/res/xml/data_extraction_rules.xml), [database_helper.dart](file:///g:/Code/health_tracker/lib/core/database/database_helper.dart#L240-L380)  
-**Location:** `BackupRestoreService`, `AndroidManifest.xml`, `DatabaseHelper`  
-**Problem:** Backup exports write complete unencrypted patient medical histories (patient names, dates of birth, exact blood pressure readings, glucose readings, medication notes) as raw JSON to a temporary file shared via the system share sheet. Furthermore, `AndroidManifest.xml` does not declare `android:allowBackup="false"` or specify `dataExtractionRules`.  
-**Why it matters:** Android Auto Backup can sync the SQLite database to Google Cloud storage unencrypted. Plaintext JSON files left in temporary caches can be accessed by other applications with storage access on older Android devices.  
-**Recommended solution:**
-1. Configure `android:allowBackup="false"` or define explicit `dataExtractionRules`.
-2. Add a notice in the backup dialog warning the user that the exported file contains unencrypted medical records.
-3. Clean up the temporary export file after sharing completes.  
-**Resolution:**
-1. Declared `android:allowBackup="false"` and `android:fullBackupContent="false"` in `AndroidManifest.xml`, backed by `data_extraction_rules.xml` excluding all cloud and device-transfer extraction.
-2. Implemented a localized security confirmation dialog in `BackupRestoreService.exportBackup` notifying users of unencrypted health data export with "Cancel" and "Export Anyway" choices.
-3. Added a pre-export safety sweep in `getTemporaryDirectory()` and guaranteed immediate cleanup of the exported file in a `finally` block after sharing completes.
-4. Hardened `DatabaseHelper.importFromJson()` to sanitize records, validate schemas/data types, and enforce foreign key integrity against malformed or orphaned items.
+### [CRIT-22] Comment Misalignment on Dashboard Snapshot Card
+**Severity:** P3 — MEDIUM  
+**Category:** Code Clarity  
+**File:** [dashboard_screen.dart](file:///g:/Code/health_tracker/lib/ui/screens/dashboard_screen.dart#L163)  
+**Problem:** Code comment states `// 7-Day Health Snapshot Card`, but `bpStatsProvider` and `glucoseStatsProvider` calculate averages across all recorded readings in the database.  
+**Recommended solution:** Update comment to match the all-time aggregation or implement a 7-day cutoff filter if a rolling 7-day window is intended.  
 **Risk of fixing:** Low.
+
+---
+
+### [CRIT-23] Glucose Line Chart Single-Reading Boundary Flatlining
+**Severity:** P3 — MEDIUM  
+**Category:** Chart / Stability  
+**File:** [analytics_screen.dart](file:///g:/Code/health_tracker/lib/ui/screens/analytics_screen.dart#L391-L528)  
+**Problem:** When exactly one glucose reading is logged, `minY` and `maxY` both equal that reading's value. While `fl_chart` doesn't crash, the line chart renders a centered dot with an awkward single-point vertical axis without context padding.  
+**Recommended solution:** Apply a minimum boundary margin (e.g. `minY = (val - 20).clamp(20, 600)`, `maxY = val + 20`).  
+**Risk of fixing:** Low.
+
+---
+
+### [CRIT-24] Raw Unlocalized Error Screen on Startup Failure
+**Severity:** P3 — MEDIUM  
+**Category:** Error Handling / Resilience  
+**File:** [main.dart](file:///g:/Code/health_tracker/lib/main.dart#L45-L47)  
+**Problem:** If SQLite database initialization or query fails at startup, `main.dart` displays:
+```dart
+error: (err, _) => Scaffold(
+  body: Center(child: Text('Error loading profiles: $err')),
+)
+```
+No retry button is provided, and the raw error string is presented in English.  
+**Recommended solution:** Render a clean error state with a localized message and a "Retry" button that calls `ref.invalidate(familyMembersProvider)`.  
+**Risk of fixing:** Low.
+
+---
+
+### [CRIT-25] Unused Dependencies in `pubspec.yaml`
+**Severity:** P4 — LOW  
+**Category:** Dependency Hygiene  
+**File:** [pubspec.yaml](file:///g:/Code/health_tracker/pubspec.yaml#L38-L49)  
+**Problem:** `google_fonts: ^8.2.1` and `cupertino_icons: ^1.0.8` are listed as direct dependencies but are not imported or utilized anywhere in `lib/`.  
+**Recommended solution:** Remove both packages from `pubspec.yaml` and run `flutter pub get`.  
+**Risk of fixing:** Very low.
+
+---
+
+### [CRIT-26] Orphaned Duplicate Localization Files in `lib/l10n/generated/`
+**Severity:** P4 — LOW  
+**Category:** Code Hygiene  
+**File:** `lib/l10n/generated/`  
+**Problem:** Duplicate, older generated localization files exist in `lib/l10n/generated/`. `l10n.yaml` outputs to `lib/l10n/`, so `generated/` is obsolete.  
+**Recommended solution:** Delete `lib/l10n/generated/`.  
+**Risk of fixing:** Very low.
+
+---
+
+### [CRIT-27] Boilerplate Description in `pubspec.yaml`
+**Severity:** P4 — LOW  
+**Category:** Metadata  
+**File:** [pubspec.yaml](file:///g:/Code/health_tracker/pubspec.yaml#L2)  
+**Problem:** `description: "A new Flutter project."`  
+**Recommended solution:** Update to `"A local-first family health companion for blood pressure and blood glucose tracking."`  
+**Risk of fixing:** None.
+
+---
+
+### [CRIT-28] Hardcoded Version String in Settings
+**Severity:** P4 — LOW  
+**Category:** Maintainability  
+**File:** [settings_screen.dart](file:///g:/Code/health_tracker/lib/ui/screens/settings_screen.dart#L328)  
+**Problem:** `settings_screen.dart` hardcodes `'v2.0.0 (Build 4)'`. Future version bumps in `pubspec.yaml` will become desynchronized.  
+**Recommended solution:** Centralize version in a constants file or read dynamically.  
+**Risk of fixing:** Very low.
 
 ---
 
 ## 5. Security Findings
 
 ### Confirmed Vulnerabilities
-- **Plaintext PHI Exposure in Device Caches:** `BackupRestoreService.exportBackup()` writes sensitive medical records to `getTemporaryDirectory()` without automatic deletion after the share sheet finishes. On rooted devices or devices running older Android versions, cached files remain accessible.
+- **None Identified:** Database queries use parameterized statements (`whereArgs`), preventing SQL injection. SQLite database files reside in internal private app storage. No secret keys, hardcoded API credentials, or remote endpoints exist in source code. Cleartext network traffic is disabled by default.
 
 ### Potential Vulnerabilities
-- **Uncontrolled Android Auto Cloud Backup:** The `application` tag in `AndroidManifest.xml` omits `android:allowBackup`. On Android 6.0–11, this defaults to `true`, automatically pushing SQLite databases containing health records to the user's Google Drive app backup without zero-knowledge encryption.
-- **Arbitrary Data Injection via JSON Restore:** In `DatabaseHelper.importFromJson()`, raw maps from decoded JSON are passed straight into `txn.insert()`. If a maliciously crafted JSON file includes unexpected SQL values or excessively large payloads, it could cause database failure.
+- **Unencrypted Local JSON Backups (Mitigated):** While backups export sensitive health data (PHI), the implementation requires explicit user confirmation via an unencrypted warning dialog, uses the system file picker / share sheet, and immediately scrubs the temporary export file from cache in a `finally` block.
+- **Android Auto Backup Leakage (Resolved):** Android Auto Backup is explicitly disabled via `android:allowBackup="false"` and `android:dataExtractionRules="@xml/data_extraction_rules"` which excludes `root`, `file`, `database`, `sharedpref`, and `external` storage from cloud backup and device transfer.
 
 ### Security Hardening Recommendations
-1. Explicitly declare `android:allowBackup="false"` in `AndroidManifest.xml` or configure secure `dataExtractionRules`.
-2. Sanitize and validate every record through `FamilyMember.fromMap`, `BpReading.fromMap`, and `GlucoseReading.fromMap` before database insertion during restore.
-3. Delete temporary JSON export files in a `finally` block after sharing.
+1. **Keystore Security:** Ensure `upload-keystore.jks` and `key.properties` remain strictly excluded from git (already guarded by `.gitignore`).
+2. **Backup Passphrase Encryption (Future):** For enterprise or cloud backup features in future versions, consider AES-256 GCM encryption using a user-provided master password before saving `.json` backups.
 
 ---
 
 ## 6. Performance Findings
 
-1. **Unindexed SQLite Queries:** As discussed in `[CRIT-07]`, queries filter on `memberId` and order by `timestamp DESC` without an index. Creating composite indexes will reduce disk read I/O from $O(N)$ to $O(\log N)$.
-2. **Chart Point Processing in Build Methods:** In `AnalyticsScreen` (`lib/ui/screens/analytics_screen.dart`), spot mapping and morning/evening circadian calculations are executed directly inside `_buildBpAnalytics()` and `_buildGlucoseAnalytics()` during every widget build. These calculations should be memoized or computed within dedicated Riverpod providers.
-3. **IndexedStack Memory Footprint:** `HomeShell` keeps all 5 screens alive simultaneously using `IndexedStack`. For an app of this size, memory overhead is negligible (~30-50MB RAM), but chart controllers and report generation state remain in memory. Disposing non-active tabs or utilizing automatic keep-alive on demand is recommended if memory pressure increases.
+- **Database Indexing (Optimized):** Composite indexes `idx_bp_member_time` and `idx_glucose_member_time` on `(memberId, timestamp DESC)` are in place, ensuring sub-millisecond timeline queries even with thousands of logged readings.
+- **Font Rendering & Assets:** `Outfit` and `NotoSansDevanagari` fonts are bundled locally in `assets/fonts/` (totaling ~1.8 MB), eliminating runtime network font fetching and offline rendering stalls.
+- **Rebuild Optimization:** UI components selectively consume scoped Riverpod providers (`activeMemberProvider`, `glucoseUnitProvider`, `bpStatsProvider`).
+- **IndexedStack Memory:** `HomeShell` maintains all 5 screens in memory via `IndexedStack`. For an offline SQLite app with lightweight screens, this is highly performant and preserves scroll positions across tab navigation.
 
 ---
 
 ## 7. Flutter / UI Findings
 
-1. **Pixel Overflows on Compact Devices:**
-   - `DashboardScreen`: Member title row lacks `Flexible`/`Expanded` (Issue `[CRIT-08]`).
-   - `HistoryScreen`: Long notes or localized strings on narrow screens (e.g. 320dp–360dp) can cause text clipping.
-2. **Missing Empty & Loading States in History / Analytics:**
-   - In `AnalyticsScreen`, if a user logs only 1 reading, `fl_chart` can exhibit rendering anomalies when calculating axis intervals:
-     ```dart
-     interval: (recent.length / 4).ceilToDouble().clamp(1.0, 5.0)
-     ```
-     When `recent.length == 1`, interval is 1.0, but if `minY == maxY` on glucose, the chart may throw assertion errors.
-3. **Locale Cold Start Shift:**
-   - In `LocaleNotifier`, `build()` synchronously returns `Locale('en')` while kicking off asynchronous `SharedPreferences` retrieval. On cold start for a Hindi-speaking user, the app renders in English for 100–300ms before suddenly flashing to Hindi.
+- **Pixel Overflow Guards:** Header title in `DashboardScreen` is wrapped in `Flexible` with `TextOverflow.ellipsis`, preventing pixel overflow on narrow 320dp screens (verified by `dashboard_header_overflow_test.dart`).
+- **Input Modals:** `QuickBpModal` and `QuickGlucoseModal` handle keyboard insets smoothly via `MediaQuery.of(context).viewInsets.bottom + 24` inside a scrollable bottom sheet.
+- **Viewport Bounds in Analytics:** Chart vertical axes require dynamic expansion to accommodate hypertensive emergencies and hypotension (addressed in CRIT-15).
 
 ---
 
 ## 8. Architecture & Maintainability
 
-### Current Architecture Assessment
-The application uses a 3-tier architecture:
-- **Presentation Layer:** Flutter Widgets and Consumers.
-- **Application/Domain Layer:** Riverpod Notifiers and Models.
-- **Data Layer:** SQLite Database Helper and Repository.
+The codebase follows clean architecture principles with clear boundaries between Data (SQLite), Domain (Models & ClinicalStandards), Business Logic (Riverpod AsyncNotifiers), and Presentation (Material 3).
 
-### Strengths
-- State is cleanly decoupled from SQLite queries via `HealthRepository`.
-- Strong domain typing for medical standards (`BpCategory`, `GlucoseCategory`, `MealContext`).
-
-### Weaknesses & Technical Debt
-- **Fragile Riverpod Invalidation Flow:** Notifiers such as `OnboardingCompletedNotifier` mix initial state detection with active dependency watching, causing unexpected state resets.
-- **Redundant L10n Files:** `lib/l10n/` contains duplicate files: both manual copies (`app_localizations.dart`, `app_localizations_en.dart`, `app_localizations_hi.dart`) and the generated directory (`lib/l10n/generated/`). This creates confusion over which file is authoritative.
+### Recommended Incremental Refactoring:
+1. **Synchronous Locale Initialization:** Make `LocaleNotifier` consume `sharedPreferencesProvider` synchronously to match `GlucoseUnitNotifier`.
+2. **State Selection Resilience:** Ensure `SelectedMemberIdNotifier` remembers the active member across list mutations.
+3. **Strings Consolidation:** Move all lingering English UI strings to `.arb` files.
 
 ---
 
 ## 9. Dependency Audit
 
-| Package | Declared Version | Purpose | Assessment & Recommendation |
-|:---|:---:|:---|:---|
-| `flutter_riverpod` | `^3.4.3` | State Management | **Up to date & Stable.** Clean modern syntax. |
-| `sqflite` | `^2.4.4` | SQLite Storage | **Stable.** Requires enabling foreign key PRAGMA. |
-| `fl_chart` | `^1.2.0` | Charts & Trends | **Stable.** Excellent performance, handles modest data sets cleanly. |
-| `pdf` & `printing` | `^3.13.1` / `^5.15.1` | PDF Generation & Printing | **Action Required.** Must configure Unicode/Devanagari fonts to prevent crashes. |
-| `google_fonts` | `^8.2.1` | Typography | **Action Required.** Depends on network; fonts should be bundled locally for offline reliability. |
-| `share_plus` | `^13.3.0` | File Sharing | **Up to date.** Works well on Android 14+. |
-| `file_picker` | `^13.1.0` | Document Selection | **Stable.** |
-| `shared_preferences` | `^2.5.5` | Key-Value Storage | **Stable.** Needs to be utilized for glucose unit and onboarding persistence. |
+| Package | Version | Status | Evaluation |
+|:---|:---:|:---:|:---|
+| `flutter_riverpod` | `^3.4.3` | Up to date | Modern reactive state management |
+| `sqflite` | `^2.4.4` | Up to date | Reliable SQLite plugin |
+| `fl_chart` | `^1.2.0` | Up to date | Smooth canvas line chart rendering |
+| `pdf` & `printing` | `^3.13.1` / `^5.15.1` | Up to date | Native PDF layout and Android print spooler integration |
+| `shared_preferences` | `^2.5.5` | Up to date | Fast key-value persistence for settings |
+| `share_plus` | `^13.3.0` | Up to date | Android Intent sharing |
+| `file_picker` | `^13.1.0` | Up to date | Safe Storage Access Framework (SAF) integration |
+| `google_fonts` | `^8.2.1` | **Unused** | Redundant; fonts are bundled as local assets |
+| `cupertino_icons` | `^1.0.8` | **Unused** | Redundant; only Material icons are used |
 
 ---
 
 ## 10. Testing Gaps
 
 | Area | Current Testing | Risk | Recommended Test |
-|:---|:---|:---:|:---|
-| **Clinical Standards** | Full unit tests in `clinical_test.dart` (12 tests) | Low | Maintain existing tests. |
-| **Model Serialization** | Unit tests for JSON mapping | Low | Maintain existing tests. |
-| **Database Operations** | **Zero automated tests** | **High** | Add SQLite in-memory tests verifying CRUD, cascades, and constraints. |
-| **Riverpod State Flow** | **Zero state notifier tests** | **Critical** | Test `OnboardingCompletedNotifier` and member switching logic. |
-| **PDF Generation** | **Zero automated tests** | **Critical** | Add unit test verifying `PdfReportService.generateReport()` with Hindi Unicode strings. |
-| **Screen Widget Tests** | 2 basic widget tests | **Medium** | Add widget tests for `QuickBpModal`, `QuickGlucoseModal`, and `HistoryScreen`. |
+|:---|:---:|:---:|:---|
+| `AnalyticsScreen` | None | Circadian calculations and chart spot transformations unverified | Widget test with 1 reading, 15 readings, and empty state |
+| `SettingsScreen` | None | Profile deletion confirmation and locale switching unverified | Widget test verifying profile editing, deletion confirmation dialog, and provider deletion |
+| `HomeShell` | None | Navigation destination switching unverified | Widget test ensuring tab switching does not throw exceptions |
+| PDF Emoji Sanitization | Basic Unicode test | Emojis in notes or names could fail PDF generation | Unit test feeding emoji strings to `PdfReportService.generateReport()` |
 
 ---
 
 ## 11. Production Configuration Checklist
 
-- [ ] **Release build:** Verified builds without errors, but produces unsigned/debug APK if keys are missing.
-- [x] **Signing:** Example `key.properties.example` exists; release builds strictly validate keystore properties and fail fast if missing (CRIT-11 resolved).
-- [ ] **Production environment:** Fully offline/local. No API backend required.
-- [ ] **Secrets:** No API keys or secrets detected in repository.
-- [ ] **Logging:** Clean; no stray `print()` or verbose debug output in production code.
-- [ ] **Crash reporting:** **Missing.** No Firebase Crashlytics or Sentry integration.
-- [ ] **Permissions:** **Review needed.** Release manifest has 0 permissions. Needs offline font bundling or `INTERNET` permission.
-- [ ] **Android configuration:** Compile SDK 34+, Target SDK 34+, Java 17, R8 enabled with ProGuard rules.
-- [x] **Database migration:** Basic migration logic in place (`version: 4`). Foreign key PRAGMA enabled.
-- [x] **Backup/recovery:** Plaintext JSON export guarded with user warning dialog, automatic cache cleanup, and Android Auto Backup disabled via data extraction rules (CRIT-12 resolved).
-- [ ] **App icons & Splash screen:** Custom launcher icon configured via `flutter_launcher_icons`.
+- [x] Release build compiles without errors
+- [x] Release keystore configuration verified in `android/app/build.gradle.kts`
+- [x] ProGuard/R8 shrinking and obfuscation enabled with custom keep rules
+- [x] Sensitive health data excluded from Android Auto Backup and device extraction
+- [x] Offline font bundling in place (`Outfit`, `NotoSansDevanagari`)
+- [x] Database foreign key cascades enabled and verified
+- [x] Composite indexes enabled for timeline queries
+- [x] Clinical boundary validation in place for blood pressure and glucose inputs
+- [x] Double-tap submission race conditions prevented via async locks
+- [x] Accidental deletion guarded with confirmation dialog and undo restoration
+- [ ] Active member state preserved across profile edits (CRIT-13)
+- [ ] Complete Hindi localization across Backup/Restore and Onboarding (CRIT-14)
+- [ ] Hypertensive crisis chart axis bounds dynamically expanded (CRIT-15)
+- [ ] Cold-start locale initialized synchronously (CRIT-16)
+- [ ] In-app Privacy Policy accessible in Settings (CRIT-18)
+- [ ] Unused dependencies removed from `pubspec.yaml` (CRIT-25)
 
 ---
 
 ## 12. Recommended Action Plan
 
-### Before Production (Must Fix — Release Blockers)
-1. **Fix PDF Unicode Font Encoding (`[CRIT-01]`):** Bundle or load a Devanagari TrueType font so PDF generation never crashes on Hindi text.
-2. **Fix Onboarding State Reset (`[CRIT-02]`):** Decouple `OnboardingCompletedNotifier` from watching `familyMembersProvider` and persist completion in `SharedPreferences`.
-3. **Bundle Fonts Locally (`[CRIT-03]`):** Bundle `Outfit` and `NotoSansDevanagari` TTF assets in `assets/fonts/` to ensure offline rendering on release builds.
-4. **Enable Database Foreign Keys & Cascades (`[CRIT-04]`):** Enable `PRAGMA foreign_keys = ON;` in `DatabaseHelper.onConfigure`.
-5. **Protect Against Accidental History Deletion (`[CRIT-05]`):** Add confirmation dialog or Undo action to `Dismissible` in `HistoryScreen`.
-6. **Add Input Validation to Modals (`[CRIT-06]`):** Validate physiological ranges and guard against duplicate submissions.
+### Before Production (Must Address)
+1. **Fix CRIT-13:** Prevent `SelectedMemberIdNotifier` from resetting the active member on profile edits.
+2. **Fix CRIT-14:** Localize all remaining hardcoded strings in `backup_restore_service.dart`, `onboarding_screen.dart`, and `settings_screen.dart`.
+3. **Fix CRIT-15:** Dynamically calculate `minY` and `maxY` on the BP line chart to prevent hypertensive crisis clipping.
+4. **Fix CRIT-16:** Eliminate cold-start locale flicker by loading locale synchronously from `sharedPreferencesProvider`.
+5. **Fix CRIT-18:** Add an in-app Privacy Policy section in Settings to guarantee Google Play compliance.
 
-### Shortly After Production (P2 Issues)
-1. **Add Database Composite Indexes (`[CRIT-07]`):** Index `(memberId, timestamp DESC)` on readings tables.
-2. **Fix Dashboard Header Overflow (`[CRIT-08]`):** Wrap header text in `Flexible` with ellipsis.
-3. **Persist Glucose Unit Preference (`[CRIT-09]`):** Save `'mg/dL'` vs `'mmol/L'` to `SharedPreferences`.
-4. **Guard Post-Async SetState (`[CRIT-10]`):** Add `if (mounted)` checks in `DoctorReportScreen`.
-5. **Fail Release Build on Missing Keystore (`[CRIT-11]`):** [RESOLVED] Remove silent debug fallback in Gradle and validate signing credentials.
-6. **Restrict Cloud Auto Backup & PHI Exposure (`[CRIT-12]`):** [RESOLVED] Set `allowBackup="false"`, add `data_extraction_rules.xml`, export warning dialog, and cache cleanup.
+### Shortly After Production (P2/P3 Issues)
+1. **Fix CRIT-17:** Wrap `exportToJson()` in an atomic read transaction.
+2. **Fix CRIT-19:** Sanitize patient names in PDF filenames and strip emoji glyphs from PDF notes.
+3. **Fix CRIT-20:** Implement widget tests for `AnalyticsScreen`, `SettingsScreen`, and `HomeShell`.
+4. **Fix CRIT-21:** Improve history card tap interaction.
+5. **Fix CRIT-23 & CRIT-24:** Add single-point glucose chart bounds and startup retry button.
 
-### Future Improvements (P3 & P4 Technical Debt)
-1. Add integration tests for database operations and state notifiers.
-2. Integrate in-app crash reporting (Sentry or Firebase Crashlytics).
-3. Clean up duplicate files in `lib/l10n/generated/`.
-4. Add tablet and landscape adaptive multi-column layouts.
+### Future Improvements (P4 Cleanup)
+1. Remove `google_fonts` and `cupertino_icons` from `pubspec.yaml` (CRIT-25).
+2. Delete orphaned `lib/l10n/generated/` folder (CRIT-26).
+3. Update `pubspec.yaml` description (CRIT-27).
+4. Centralize app version constant (CRIT-28).
 
 ---
 
 ## 13. Final Production Gate
 
 ### Must Fix Before Release
-- **CRIT-01:** PDF generation font encoding crash on Hindi/Devanagari characters.
-- **CRIT-02:** `OnboardingCompletedNotifier` reset bug ejecting users from the Dashboard.
-- **CRIT-03:** Release manifest font failure / lack of bundled offline font assets.
-- **CRIT-04:** Disabled SQLite foreign keys and lack of atomic deletion transactions.
-- **CRIT-05:** Instant irreversible deletion of health readings via swipe gesture.
-- **CRIT-06:** Lack of medical input validation and duplicate submissions on rapid tapping.
+- **CRIT-13:** `SelectedMemberIdNotifier` active member reset bug.
+- **CRIT-14:** Incomplete Hindi internationalization across restore modals and onboarding.
+- **CRIT-15:** Hypertensive crisis chart viewport clipping.
+- **CRIT-16:** Cold-start locale async race condition.
+- **CRIT-18:** In-app Privacy Policy link for Google Play health compliance.
 
 ### Should Fix Before Release
-- **CRIT-07:** Missing SQLite indexes on readings tables.
-- **CRIT-08:** Unconstrained dashboard greeting text overflow on narrow devices.
-- **CRIT-09:** Non-persistent glucose unit preference.
-- **CRIT-10:** Unhandled async error and unmounted `setState` in doctor report screen.
-- **CRIT-11:** [RESOLVED] Silent release build fallback to debug keystore.
-- **CRIT-12:** [RESOLVED] Plaintext unencrypted health backups & Android Auto Backup PHI exposure.
+- **CRIT-17:** Atomic database export read snapshot.
+- **CRIT-19:** Filename sanitization and emoji handling in PDF export.
+- **CRIT-20:** Widget tests for Analytics, Settings, and HomeShell.
+- **CRIT-25 & CRIT-26:** Dependency and dead code cleanup.
 
 ### Can Be Deferred
-- **CRIT-13:** Test coverage expansion for SQLite in-memory integration.
-- **CRIT-18:** Clean up duplicate l10n directory files.
-- **CRIT-20:** Landscape and tablet multi-column layout optimizations.
+- **CRIT-21:** History screen card tap vs long-press UX refinement.
+- **CRIT-22:** Dashboard snapshot comment clarification.
+- **CRIT-23:** Glucose single-spot chart padding.
+- **CRIT-24:** Startup error card with retry button.
+- **CRIT-27 & CRIT-28:** Pubspec description and dynamic version display.
 
 ### Unknowns Requiring Manual Verification
-1. **Physical Device Print Service:** Direct printing (`Printing.layoutPdf`) must be verified on physical Android devices across Android 12, 13, and 14 to verify Android Print Spooler compatibility.
-2. **FilePicker Native Permissions on Android 13/14:** System document picker behavior for `.json` file types without storage permissions.
-3. **Google Play Store Rejection Check:** Verification that the APK/AAB builds with genuine release keystore credentials and complies with Google Play Target API 34+ policies.
+1. **Physical Device Print Spooler:** Real-device behavior of `Printing.layoutPdf` across various Android OEMs (Samsung, Xiaomi, OnePlus) with native print services.
+2. **Storage Access Framework (SAF):** Testing `FilePicker.pickFile` across Android 10, 13, and 14 on physical devices to confirm scoped file access.
+3. **Google Play Console Release Signing:** Verifying that the SHA-256 fingerprint of `upload-keystore.jks` matches the Play App Signing upload key registered in Google Play Console.
