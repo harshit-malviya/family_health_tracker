@@ -29,7 +29,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 4,
+      version: 5,
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON;');
       },
@@ -56,6 +56,15 @@ class DatabaseHelper {
         'CREATE INDEX IF NOT EXISTS idx_glucose_member_time ON glucose_readings(memberId, timestamp DESC);',
       );
     }
+    if (oldVersion < 5) {
+      await db.execute('ALTER TABLE family_members ADD COLUMN familyId TEXT;');
+      await db.execute('ALTER TABLE bp_readings ADD COLUMN familyId TEXT;');
+      await db.execute('ALTER TABLE bp_readings ADD COLUMN createdBy TEXT;');
+      await db.execute('ALTER TABLE bp_readings ADD COLUMN loggedByName TEXT;');
+      await db.execute('ALTER TABLE glucose_readings ADD COLUMN familyId TEXT;');
+      await db.execute('ALTER TABLE glucose_readings ADD COLUMN createdBy TEXT;');
+      await db.execute('ALTER TABLE glucose_readings ADD COLUMN loggedByName TEXT;');
+    }
   }
 
   Future<void> _createDB(Database db, int version) async {
@@ -68,7 +77,8 @@ class DatabaseHelper {
         age INTEGER,
         dateOfBirth TEXT,
         colorValue INTEGER NOT NULL,
-        avatarEmoji TEXT NOT NULL
+        avatarEmoji TEXT NOT NULL,
+        familyId TEXT
       )
     ''');
 
@@ -85,6 +95,9 @@ class DatabaseHelper {
         hasArrhythmia INTEGER NOT NULL,
         notes TEXT,
         timestamp TEXT NOT NULL,
+        familyId TEXT,
+        createdBy TEXT,
+        loggedByName TEXT,
         FOREIGN KEY (memberId) REFERENCES family_members (id) ON DELETE CASCADE
       )
     ''');
@@ -98,6 +111,9 @@ class DatabaseHelper {
         mealContext TEXT NOT NULL,
         medicationNotes TEXT,
         timestamp TEXT NOT NULL,
+        familyId TEXT,
+        createdBy TEXT,
+        loggedByName TEXT,
         FOREIGN KEY (memberId) REFERENCES family_members (id) ON DELETE CASCADE
       )
     ''');
@@ -109,14 +125,22 @@ class DatabaseHelper {
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_glucose_member_time ON glucose_readings(memberId, timestamp DESC);',
     );
-    // First-time users create their own family members via the Onboarding flow.
   }
 
   // --- Family Member Operations ---
 
-  Future<List<FamilyMember>> getMembers() async {
+  Future<List<FamilyMember>> getMembers({String? familyId}) async {
     final db = await instance.database;
-    final maps = await db.query('family_members');
+    final List<Map<String, dynamic>> maps;
+    if (familyId != null && familyId.isNotEmpty) {
+      maps = await db.query(
+        'family_members',
+        where: 'familyId = ? OR familyId IS NULL',
+        whereArgs: [familyId],
+      );
+    } else {
+      maps = await db.query('family_members');
+    }
     return maps.map((m) => FamilyMember.fromMap(m)).toList();
   }
 
@@ -220,6 +244,16 @@ class DatabaseHelper {
     await db.delete('glucose_readings', where: 'id = ?', whereArgs: [id]);
   }
 
+  /// Clears local cache tables (e.g. on account logout)
+  Future<void> clearAllData() async {
+    final db = await instance.database;
+    await db.transaction((txn) async {
+      await txn.delete('glucose_readings');
+      await txn.delete('bp_readings');
+      await txn.delete('family_members');
+    });
+  }
+
   // --- Backup & Restore (JSON String) ---
 
   Future<String> exportToJson() async {
@@ -281,6 +315,7 @@ class DatabaseHelper {
               'dateOfBirth': raw['dateOfBirth']?.toString(),
               'colorValue': colorValue,
               'avatarEmoji': avatarEmoji,
+              'familyId': raw['familyId']?.toString(),
             };
 
             await txn.insert(
@@ -336,6 +371,9 @@ class DatabaseHelper {
               'hasArrhythmia': hasArrhythmia,
               'notes': raw['notes']?.toString(),
               'timestamp': timestampStr,
+              'familyId': raw['familyId']?.toString(),
+              'createdBy': raw['createdBy']?.toString(),
+              'loggedByName': raw['loggedByName']?.toString(),
             };
 
             await txn.insert(
@@ -376,6 +414,9 @@ class DatabaseHelper {
               'mealContext': mealContext,
               'medicationNotes': raw['medicationNotes']?.toString(),
               'timestamp': timestampStr,
+              'familyId': raw['familyId']?.toString(),
+              'createdBy': raw['createdBy']?.toString(),
+              'loggedByName': raw['loggedByName']?.toString(),
             };
 
             await txn.insert(

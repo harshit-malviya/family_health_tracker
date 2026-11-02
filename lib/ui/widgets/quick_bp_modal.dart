@@ -504,9 +504,7 @@ class _QuickBpModalState extends ConsumerState<QuickBpModal> {
 
     try {
       if (isEditing) {
-        final updated = BpReading(
-          id: widget.initialReading!.id,
-          memberId: widget.initialReading!.memberId,
+        final updated = widget.initialReading!.copyWith(
           systolic: sys!,
           diastolic: dia!,
           pulse: pulse!,

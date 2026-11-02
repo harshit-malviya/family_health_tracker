@@ -506,9 +506,7 @@ class _QuickGlucoseModalState extends ConsumerState<QuickGlucoseModal> {
 
     try {
       if (isEditing) {
-        final updated = GlucoseReading(
-          id: widget.initialReading!.id,
-          memberId: widget.initialReading!.memberId,
+        final updated = widget.initialReading!.copyWith(
           valueMgDl: mgDl,
           mealContext: _selectedMealContext,
           medicationNotes: _medsController.text.trim(),

@@ -11,6 +11,9 @@ class BpReading {
   final bool hasArrhythmia; // Irregular heartbeat detected by machine
   final String notes;
   final DateTime timestamp;
+  final String? familyId;
+  final String? createdBy;
+  final String? loggedByName;
 
   const BpReading({
     required this.id,
@@ -23,9 +26,44 @@ class BpReading {
     this.hasArrhythmia = false,
     this.notes = '',
     required this.timestamp,
+    this.familyId,
+    this.createdBy,
+    this.loggedByName,
   });
 
   BpCategory get category => ClinicalStandards.evaluateBp(systolic, diastolic);
+
+  BpReading copyWith({
+    String? id,
+    String? memberId,
+    int? systolic,
+    int? diastolic,
+    int? pulse,
+    String? arm,
+    String? posture,
+    bool? hasArrhythmia,
+    String? notes,
+    DateTime? timestamp,
+    String? familyId,
+    String? createdBy,
+    String? loggedByName,
+  }) {
+    return BpReading(
+      id: id ?? this.id,
+      memberId: memberId ?? this.memberId,
+      systolic: systolic ?? this.systolic,
+      diastolic: diastolic ?? this.diastolic,
+      pulse: pulse ?? this.pulse,
+      arm: arm ?? this.arm,
+      posture: posture ?? this.posture,
+      hasArrhythmia: hasArrhythmia ?? this.hasArrhythmia,
+      notes: notes ?? this.notes,
+      timestamp: timestamp ?? this.timestamp,
+      familyId: familyId ?? this.familyId,
+      createdBy: createdBy ?? this.createdBy,
+      loggedByName: loggedByName ?? this.loggedByName,
+    );
+  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -39,21 +77,50 @@ class BpReading {
       'hasArrhythmia': hasArrhythmia ? 1 : 0,
       'notes': notes,
       'timestamp': timestamp.toIso8601String(),
+      'familyId': familyId,
+      'createdBy': createdBy,
+      'loggedByName': loggedByName,
     };
   }
 
   factory BpReading.fromMap(Map<String, dynamic> map) {
     return BpReading(
       id: map['id'] as String,
-      memberId: map['memberId'] as String,
+      memberId: (map['memberId'] ?? map['member_id']) as String,
       systolic: map['systolic'] as int,
       diastolic: map['diastolic'] as int,
       pulse: map['pulse'] as int,
       arm: (map['arm'] as String?) ?? 'Left',
       posture: (map['posture'] as String?) ?? 'Sitting',
-      hasArrhythmia: (map['hasArrhythmia'] as int?) == 1,
+      hasArrhythmia: map['hasArrhythmia'] is bool
+          ? map['hasArrhythmia'] as bool
+          : (map['hasArrhythmia'] as int? ?? (map['has_arrhythmia'] == true ? 1 : 0)) == 1,
       notes: (map['notes'] as String?) ?? '',
       timestamp: DateTime.parse(map['timestamp'] as String),
+      familyId: (map['familyId'] ?? map['family_id']) as String?,
+      createdBy: (map['createdBy'] ?? map['created_by']) as String?,
+      loggedByName: (map['loggedByName'] ?? map['logged_by_name']) as String?,
     );
+  }
+
+  /// Converts model for Supabase table `public.bp_readings`
+  Map<String, dynamic> toSupabaseMap() {
+    return {
+      'id': id,
+      'member_id': memberId,
+      'systolic': systolic,
+      'diastolic': diastolic,
+      'pulse': pulse,
+      'arm': arm,
+      'posture': posture,
+      'has_arrhythmia': hasArrhythmia,
+      'notes': notes,
+      'timestamp': timestamp.toIso8601String(),
+      if (familyId != null) 'family_id': familyId,
+      if (createdBy != null) 'created_by': createdBy,
+      'logged_by_name': (loggedByName != null && loggedByName!.isNotEmpty)
+          ? loggedByName
+          : 'Family Member',
+    };
   }
 }

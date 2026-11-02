@@ -49,3 +49,6 @@ key.properties
 **/android/key.properties
 *.jks
 *.keystore
+
+# Environment variables
+.env

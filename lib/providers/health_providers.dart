@@ -5,6 +5,8 @@ import '../models/family_member.dart';
 import '../models/bp_reading.dart';
 import '../models/glucose_reading.dart';
 import '../core/constants/clinical_standards.dart';
+import '../services/supabase_service.dart';
+import 'auth_provider.dart';
 
 // SharedPreferences Provider (injected at startup)
 final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
@@ -13,7 +15,34 @@ final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
 
 // Health Repository Provider
 final healthRepositoryProvider = Provider<HealthRepository>((ref) {
-  return HealthRepository();
+  final currentFamily = ref.watch(currentFamilyProvider).value;
+  return HealthRepository(
+    activeFamilyId: currentFamily?.id,
+    activeUserDisplayName: currentFamily?.displayName,
+  );
+});
+
+// Realtime Subscriptions Provider
+final realtimeSubscriptionProvider = Provider.autoDispose<void>((ref) {
+  final family = ref.watch(currentFamilyProvider).value;
+  if (family == null) return;
+
+  final channel = SupabaseService.instance.subscribeToFamily(
+    familyId: family.id,
+    onUpdate: () {
+      ref.invalidate(familyMembersProvider);
+      ref.invalidate(bpReadingsProvider);
+      ref.invalidate(glucoseReadingsProvider);
+    },
+  );
+
+  ref.onDispose(() {
+    if (channel != null) {
+      try {
+        Supabase.instance.client.removeChannel(channel);
+      } catch (_) {}
+    }
+  });
 });
 
 // Preference key for glucose unit
@@ -51,6 +80,8 @@ final glucoseUnitProvider =
 class FamilyMembersNotifier extends AsyncNotifier<List<FamilyMember>> {
   @override
   Future<List<FamilyMember>> build() async {
+    // Ensure realtime listener is alive
+    ref.watch(realtimeSubscriptionProvider);
     final repo = ref.watch(healthRepositoryProvider);
     return repo.getFamilyMembers();
   }
@@ -94,8 +125,6 @@ class OnboardingCompletedNotifier extends Notifier<bool> {
       return savedValue;
     }
 
-    // Fallback/migration for existing users who already created profiles:
-    // Read members once without registering a reactive watch
     final existingMembers = ref.read(familyMembersProvider).asData?.value;
     if (existingMembers != null && existingMembers.isNotEmpty) {
       prefs.setBool(kOnboardingCompletedPrefKey, true);
@@ -164,15 +193,16 @@ final activeMemberProvider = Provider<FamilyMember?>((ref) {
 class BpReadingsNotifier extends AsyncNotifier<List<BpReading>> {
   @override
   Future<List<BpReading>> build() async {
+    ref.watch(realtimeSubscriptionProvider);
     final member = ref.watch(activeMemberProvider);
     if (member == null) return [];
     final repo = ref.watch(healthRepositoryProvider);
     return repo.getBpReadings(member.id);
   }
 
-  Future<void> addReading(BpReading reading) async {
+  Future<void> addReading(BpReading reading, {String? loggedBy}) async {
     final repo = ref.read(healthRepositoryProvider);
-    await repo.addBpReading(reading);
+    await repo.addBpReading(reading, loggedBy: loggedBy);
     ref.invalidateSelf();
   }
 
@@ -201,15 +231,16 @@ final bpReadingsProvider =
 class GlucoseReadingsNotifier extends AsyncNotifier<List<GlucoseReading>> {
   @override
   Future<List<GlucoseReading>> build() async {
+    ref.watch(realtimeSubscriptionProvider);
     final member = ref.watch(activeMemberProvider);
     if (member == null) return [];
     final repo = ref.watch(healthRepositoryProvider);
     return repo.getGlucoseReadings(member.id);
   }
 
-  Future<void> addReading(GlucoseReading reading) async {
+  Future<void> addReading(GlucoseReading reading, {String? loggedBy}) async {
     final repo = ref.read(healthRepositoryProvider);
-    await repo.addGlucoseReading(reading);
+    await repo.addGlucoseReading(reading, loggedBy: loggedBy);
     ref.invalidateSelf();
   }
 

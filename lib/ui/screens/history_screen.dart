@@ -243,7 +243,25 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                           ),
                         ],
                         const SizedBox(height: 4),
-                        Text(timeStr, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                        Row(
+                          children: [
+                            Text(timeStr, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                            if (bp.loggedByName != null && bp.loggedByName!.isNotEmpty) ...[
+                              const SizedBox(width: 8),
+                              Text('•', style: TextStyle(fontSize: 11, color: AppColors.textMuted.withValues(alpha: 0.6))),
+                              const SizedBox(width: 8),
+                              const Icon(Icons.person_pin_rounded, size: 12, color: AppColors.primary),
+                              const SizedBox(width: 3),
+                              Flexible(
+                                child: Text(
+                                  bp.loggedByName!,
+                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primary),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                       ],
                     ),
                   ),
@@ -345,7 +363,25 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                           ),
                         ],
                         const SizedBox(height: 4),
-                        Text(timeStr, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                        Row(
+                          children: [
+                            Text(timeStr, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                            if (g.loggedByName != null && g.loggedByName!.isNotEmpty) ...[
+                              const SizedBox(width: 8),
+                              Text('•', style: TextStyle(fontSize: 11, color: AppColors.textMuted.withValues(alpha: 0.6))),
+                              const SizedBox(width: 8),
+                              const Icon(Icons.person_pin_rounded, size: 12, color: AppColors.secondary),
+                              const SizedBox(width: 3),
+                              Flexible(
+                                child: Text(
+                                  g.loggedByName!,
+                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.secondary),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                       ],
                     ),
                   ),

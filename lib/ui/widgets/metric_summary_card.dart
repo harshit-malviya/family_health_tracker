@@ -15,6 +15,7 @@ class MetricSummaryCard extends StatelessWidget {
   final Color accentColor;
   final VoidCallback onTapLog;
   final String? subtitle;
+  final String? loggedBy;
 
   const MetricSummaryCard({
     super.key,
@@ -29,6 +30,7 @@ class MetricSummaryCard extends StatelessWidget {
     required this.accentColor,
     required this.onTapLog,
     this.subtitle,
+    this.loggedBy,
   });
 
   @override
@@ -98,7 +100,7 @@ class MetricSummaryCard extends StatelessWidget {
                             l10n?.logAction ?? 'Log',
                             style: TextStyle(
                               fontSize: 12,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w700,
                               color: accentColor,
                             ),
                           ),
@@ -109,7 +111,7 @@ class MetricSummaryCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 18),
 
-                // Primary Value + Unit
+                // Main Value Row
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.baseline,
                   textBaseline: TextBaseline.alphabetic,
@@ -128,12 +130,12 @@ class MetricSummaryCard extends StatelessWidget {
                       unit,
                       style: const TextStyle(
                         fontSize: 14,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w500,
                         color: AppColors.textMuted,
                       ),
                     ),
                     if (secondaryValue != null) ...[
-                      const SizedBox(width: 14),
+                      const SizedBox(width: 16),
                       Text(
                         secondaryValue!,
                         style: const TextStyle(
@@ -183,7 +185,7 @@ class MetricSummaryCard extends StatelessWidget {
                     ),
                   ),
 
-                // Timestamp
+                // Timestamp & Logged By attribution
                 Row(
                   children: [
                     const Icon(Icons.access_time, size: 14, color: AppColors.textMuted),
@@ -195,6 +197,24 @@ class MetricSummaryCard extends StatelessWidget {
                         color: AppColors.textMuted,
                       ),
                     ),
+                    if (loggedBy != null && loggedBy!.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      Text('\u2022', style: TextStyle(fontSize: 11, color: AppColors.textMuted.withValues(alpha: 0.6))),
+                      const SizedBox(width: 8),
+                      Icon(Icons.person_pin_rounded, size: 13, color: accentColor),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          loggedBy!,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: accentColor,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ],

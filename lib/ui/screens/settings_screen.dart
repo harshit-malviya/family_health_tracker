@@ -7,6 +7,13 @@ import '../../l10n/app_localizations.dart';
 import '../../providers/health_providers.dart';
 import '../../providers/locale_provider.dart';
 import '../../services/backup_restore_service.dart';
+import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
+import '../../providers/auth_provider.dart';
+import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
+import '../../providers/auth_provider.dart';
+import '../../services/supabase_service.dart';
 import '../widgets/member_form_dialog.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -26,6 +33,7 @@ class SettingsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
+          _buildFamilyAccountSection(context, ref, l10n),
           // Language Selection Section
           _buildSectionHeader(l10n.languageSectionTitle),
           _buildCardSection(
@@ -34,8 +42,10 @@ class SettingsScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+          _buildFamilyAccountSection(context, ref, l10n),
                   Row(
                     children: [
+          _buildFamilyAccountSection(context, ref, l10n),
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
@@ -49,6 +59,7 @@ class SettingsScreen extends ConsumerWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+          _buildFamilyAccountSection(context, ref, l10n),
                             Text(
                               l10n.languageSectionTitle,
                               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -98,8 +109,10 @@ class SettingsScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+          _buildFamilyAccountSection(context, ref, l10n),
                   Row(
                     children: [
+          _buildFamilyAccountSection(context, ref, l10n),
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
@@ -113,6 +126,7 @@ class SettingsScreen extends ConsumerWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+          _buildFamilyAccountSection(context, ref, l10n),
                             Text(
                               l10n.glucoseUnitTitle,
                               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -159,6 +173,7 @@ class SettingsScreen extends ConsumerWidget {
           _buildCardSection(
             child: Column(
               children: [
+          _buildFamilyAccountSection(context, ref, l10n),
                 ListTile(
                   leading: const Icon(Icons.cloud_upload_outlined, color: Colors.blue),
                   title: Text(l10n.exportHealthRecords, style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -194,6 +209,7 @@ class SettingsScreen extends ConsumerWidget {
               data: (members) {
                 return Column(
                   children: [
+          _buildFamilyAccountSection(context, ref, l10n),
                     ListView.separated(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
@@ -213,6 +229,7 @@ class SettingsScreen extends ConsumerWidget {
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+          _buildFamilyAccountSection(context, ref, l10n),
                               IconButton(
                                 icon: const Icon(Icons.edit_outlined, size: 20, color: AppColors.primary),
                                 tooltip: l10n.editProfile,
@@ -316,8 +333,10 @@ class SettingsScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+          _buildFamilyAccountSection(context, ref, l10n),
                 Row(
                   children: [
+          _buildFamilyAccountSection(context, ref, l10n),
                     const Icon(Icons.verified_user_outlined, size: 18, color: AppColors.textMuted),
                     const SizedBox(width: 8),
                     Text(
@@ -409,8 +428,10 @@ class SettingsScreen extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+          _buildFamilyAccountSection(context, ref, l10n),
               Row(
                 children: [
+          _buildFamilyAccountSection(context, ref, l10n),
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
@@ -467,6 +488,141 @@ class SettingsScreen extends ConsumerWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+  Widget _buildFamilyAccountSection(BuildContext context, WidgetRef ref, AppLocalizations l10n) {
+    final user = ref.watch(currentUserProvider);
+    final familyAsync = ref.watch(currentFamilyProvider);
+    final family = familyAsync.value;
+
+    if (user == null && family == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('Family Cloud & Account'),
+        _buildCardSection(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: AppColors.primaryLight,
+                      child: const Icon(Icons.family_restroom_rounded, color: AppColors.primary, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            family?.name ?? 'My Family',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Signed in as ${family?.displayName ?? user?.email ?? "Member"} (${user?.email ?? ""})',
+                            style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                if (family != null && family.inviteCode.isNotEmpty) ...[
+                  const Divider(height: 24, thickness: 0.8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.key_rounded, size: 18, color: Color(0xFF64748B)),
+                        const SizedBox(width: 8),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Family Invite Code', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                            Text(
+                              family.inviteCode,
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1),
+                            ),
+                          ],
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          icon: const Icon(Icons.copy_rounded, size: 18, color: AppColors.primary),
+                          tooltip: 'Copy Code',
+                          onPressed: () {
+                            Clipboard.setData(ClipboardData(text: family.inviteCode));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Copied invite code: ${family.inviteCode}')),
+                            );
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.share_rounded, size: 18, color: AppColors.primary),
+                          tooltip: 'Share Invite',
+                          onPressed: () {
+                            Share.share(
+                              'Join our family health space in Family Health Tracker! Use invite code: ${family.inviteCode}',
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 14),
+                OutlinedButton.icon(
+                  onPressed: () => _showSignOutDialog(context, ref),
+                  icon: const Icon(Icons.logout_rounded, size: 18, color: Colors.redAccent),
+                  label: const Text('Sign Out', style: TextStyle(color: Colors.redAccent)),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFFFFCDD2)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+
+  void _showSignOutDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('Sign Out'),
+        content: const Text('Are you sure you want to sign out from your family account?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () async {
+              Navigator.pop(dialogCtx);
+              await ref.read(currentFamilyProvider.notifier).signOut();
+            },
+            child: const Text('Sign Out', style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }
