@@ -42,10 +42,8 @@ class SettingsScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-          _buildFamilyAccountSection(context, ref, l10n),
                   Row(
                     children: [
-          _buildFamilyAccountSection(context, ref, l10n),
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
@@ -59,7 +57,6 @@ class SettingsScreen extends ConsumerWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-          _buildFamilyAccountSection(context, ref, l10n),
                             Text(
                               l10n.languageSectionTitle,
                               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -109,10 +106,8 @@ class SettingsScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-          _buildFamilyAccountSection(context, ref, l10n),
                   Row(
                     children: [
-          _buildFamilyAccountSection(context, ref, l10n),
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
@@ -126,7 +121,6 @@ class SettingsScreen extends ConsumerWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-          _buildFamilyAccountSection(context, ref, l10n),
                             Text(
                               l10n.glucoseUnitTitle,
                               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -173,7 +167,6 @@ class SettingsScreen extends ConsumerWidget {
           _buildCardSection(
             child: Column(
               children: [
-          _buildFamilyAccountSection(context, ref, l10n),
                 ListTile(
                   leading: const Icon(Icons.cloud_upload_outlined, color: Colors.blue),
                   title: Text(l10n.exportHealthRecords, style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -209,7 +202,6 @@ class SettingsScreen extends ConsumerWidget {
               data: (members) {
                 return Column(
                   children: [
-          _buildFamilyAccountSection(context, ref, l10n),
                     ListView.separated(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
@@ -229,7 +221,6 @@ class SettingsScreen extends ConsumerWidget {
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-          _buildFamilyAccountSection(context, ref, l10n),
                               IconButton(
                                 icon: const Icon(Icons.edit_outlined, size: 20, color: AppColors.primary),
                                 tooltip: l10n.editProfile,
@@ -333,10 +324,8 @@ class SettingsScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-          _buildFamilyAccountSection(context, ref, l10n),
                 Row(
                   children: [
-          _buildFamilyAccountSection(context, ref, l10n),
                     const Icon(Icons.verified_user_outlined, size: 18, color: AppColors.textMuted),
                     const SizedBox(width: 8),
                     Text(
@@ -428,10 +417,8 @@ class SettingsScreen extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-          _buildFamilyAccountSection(context, ref, l10n),
               Row(
                 children: [
-          _buildFamilyAccountSection(context, ref, l10n),
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(

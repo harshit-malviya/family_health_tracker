@@ -116,7 +116,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 440),
               child: Column(
-                mainAxisAlignment: Main COMPONENT_NAME ?? MainAxisSize.min,
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // App Icon & Header

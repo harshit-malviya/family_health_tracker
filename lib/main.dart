@@ -83,7 +83,7 @@ class FamilyHealthTrackerApp extends ConsumerWidget {
                   ),
                   const SizedBox(height: 20),
                   Row(
-                    mainAxisAlignment: MainAxisSize.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       ElevatedButton.icon(
                         onPressed: () => ref.read(currentFamilyProvider.notifier).reload(),

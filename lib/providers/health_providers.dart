@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../repositories/health_repository.dart';
 import '../models/family_member.dart';
 import '../models/bp_reading.dart';
