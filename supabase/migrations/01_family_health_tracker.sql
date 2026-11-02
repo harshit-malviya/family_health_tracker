@@ -98,12 +98,18 @@ $$ LANGUAGE plpgsql;
 DROP POLICY IF EXISTS "Users can view families they belong to" ON public.families;
 CREATE POLICY "Users can view families they belong to"
   ON public.families FOR SELECT
-  USING (public.is_member_of_family(id));
+  USING (
+    created_by = auth.uid()
+    OR public.is_member_of_family(id)
+  );
 
 DROP POLICY IF EXISTS "Authenticated users can create families" ON public.families;
 CREATE POLICY "Authenticated users can create families"
   ON public.families FOR INSERT
-  WITH CHECK (auth.role() = 'authenticated');
+  WITH CHECK (
+    auth.uid() IS NOT NULL
+    AND (created_by IS NULL OR created_by = auth.uid())
+  );
 
 -- Policies for family memberships
 DROP POLICY IF EXISTS "Users can view family memberships" ON public.family_memberships;
@@ -184,6 +190,37 @@ CREATE POLICY "Family members can delete Glucose readings"
   ON public.glucose_readings FOR DELETE
   USING (public.is_member_of_family(family_id));
 
+-- 9. Helper RPC function to atomically create a family and assign creator as admin
+CREATE OR REPLACE FUNCTION public.create_family(p_family_name TEXT, p_invite_code TEXT, p_display_name TEXT)
+RETURNS jsonb SECURITY DEFINER AS $$
+DECLARE
+  v_user_id UUID;
+  v_family RECORD;
+  v_membership RECORD;
+BEGIN
+  v_user_id := auth.uid();
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  INSERT INTO public.families (name, invite_code, created_by)
+  VALUES (TRIM(p_family_name), UPPER(TRIM(p_invite_code)), v_user_id)
+  RETURNING * INTO v_family;
+
+  INSERT INTO public.family_memberships (family_id, user_id, display_name, role)
+  VALUES (v_family.id, v_user_id, TRIM(p_display_name), 'admin')
+  RETURNING * INTO v_membership;
+
+  RETURN jsonb_build_object(
+    'family_id', v_family.id,
+    'family_name', v_family.name,
+    'invite_code', v_family.invite_code,
+    'role', v_membership.role,
+    'display_name', v_membership.display_name
+  );
+END;
+$$ LANGUAGE plpgsql;
+
 -- Helper RPC function to find and join a family by invite code securely
 CREATE OR REPLACE FUNCTION public.join_family_by_code(p_invite_code TEXT, p_display_name TEXT)
 RETURNS jsonb SECURITY DEFINER AS $$
@@ -203,7 +240,7 @@ BEGIN
   END IF;
 
   INSERT INTO public.family_memberships (family_id, user_id, display_name, role)
-  VALUES (v_family.id, v_user_id, p_display_name, 'member')
+  VALUES (v_family.id, v_user_id, TRIM(p_display_name), 'member')
   ON CONFLICT (family_id, user_id) 
   DO UPDATE SET display_name = EXCLUDED.display_name
   RETURNING * INTO v_membership;
@@ -242,4 +279,3 @@ BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.glucose_readings;
   END IF;
 END $$;
-

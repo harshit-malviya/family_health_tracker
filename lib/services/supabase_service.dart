@@ -108,7 +108,21 @@ class SupabaseService {
 
     final code = _generateInviteCode(familyName);
 
-    // 1. Insert Family
+    // 1. Try RPC first for atomic creation without RLS timing race
+    try {
+      final rpcRes = await client.rpc('create_family', params: {
+        'p_family_name': familyName.trim(),
+        'p_invite_code': code,
+        'p_display_name': displayName.trim(),
+      });
+      if (rpcRes is Map<String, dynamic>) {
+        return FamilyGroupInfo.fromMap(rpcRes);
+      }
+    } catch (_) {
+      // Fallback to direct table queries
+    }
+
+    // 2. Fallback to direct table inserts
     final familyRow = await client.from('families').insert({
       'name': familyName.trim(),
       'invite_code': code,
