@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../providers/auth_provider.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
@@ -72,6 +73,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
   }
 
   String _formatErrorMessage(Object e) {
+    if (e is AuthException) return e.message;
     final str = e.toString().replaceAll('Exception: ', '');
     if (e is TimeoutException ||
         str.contains('SocketException') ||

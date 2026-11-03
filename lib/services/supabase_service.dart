@@ -6,7 +6,8 @@ import '../models/bp_reading.dart';
 import '../models/glucose_reading.dart';
 import '../core/config/supabase_config.dart';
 
-const Duration kNetworkTimeout = Duration(seconds: 3);
+const Duration kNetworkTimeout = Duration(seconds: 10);
+const Duration kAuthTimeout = Duration(seconds: 15);
 
 class FamilyGroupInfo {
   final String id;
@@ -76,7 +77,7 @@ class SupabaseService {
       email: email.trim(),
       password: password,
       data: {'display_name': displayName.trim()},
-    ).timeout(kNetworkTimeout);
+    ).timeout(kAuthTimeout);
     return response;
   }
 
@@ -90,7 +91,7 @@ class SupabaseService {
     final response = await client.auth.signInWithPassword(
       email: email.trim(),
       password: password,
-    ).timeout(kNetworkTimeout);
+    ).timeout(kAuthTimeout);
     return response;
   }
 
@@ -98,7 +99,7 @@ class SupabaseService {
     final client = _client;
     if (client != null) {
       try {
-        await client.auth.signOut().timeout(kNetworkTimeout);
+        await client.auth.signOut().timeout(kAuthTimeout);
       } catch (_) {}
     }
   }
