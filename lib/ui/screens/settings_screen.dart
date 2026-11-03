@@ -10,10 +10,6 @@ import '../../services/backup_restore_service.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../providers/auth_provider.dart';
-import 'package:flutter/services.dart';
-import 'package:share_plus/share_plus.dart';
-import '../../providers/auth_provider.dart';
-import '../../services/supabase_service.dart';
 import '../widgets/member_form_dialog.dart';
 
 class SettingsScreen extends ConsumerWidget {

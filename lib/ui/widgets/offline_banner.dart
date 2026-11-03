@@ -71,20 +71,23 @@ class OfflineBanner extends ConsumerWidget {
         ),
         child: const Row(
           children: [
-            SizedBox(
+            const SizedBox(
               width: 14,
               height: 14,
               child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF2563EB)),
             ),
-            SizedBox(width: 10),
-            Text(
-              'Syncing with family cloud...',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF1D4ED8)),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text(
+                'Syncing with family cloud...',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF1D4ED8)),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
       ),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (error, stack) => const SizedBox.shrink(),
     );
   }
 }

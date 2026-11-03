@@ -50,7 +50,7 @@ class MockHealthRepository extends HealthRepository {
   }
 
   @override
-  Future<void> addBpReading(BpReading reading) async {
+  Future<void> addBpReading(BpReading reading, {String? loggedBy}) async {
     bpList.add(reading);
   }
 }

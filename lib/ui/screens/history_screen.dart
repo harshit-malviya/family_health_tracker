@@ -262,13 +262,6 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                                 ),
                               ),
                             ],
-                            if (bp.isPendingSync) ...[
-                              const SizedBox(width: 6),
-                              const Tooltip(
-                                message: 'Saved locally, pending cloud sync',
-                                child: Icon(Icons.cloud_upload_outlined, size: 13, color: Color(0xFFD97706)),
-                              ),
-                            ],
                           ],
                         ),
                       ],
@@ -387,13 +380,6 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                                   style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.secondary),
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
-                            ],
-                            if (g.isPendingSync) ...[
-                              const SizedBox(width: 6),
-                              const Tooltip(
-                                message: 'Saved locally, pending cloud sync',
-                                child: Icon(Icons.cloud_upload_outlined, size: 13, color: Color(0xFFD97706)),
                               ),
                             ],
                           ],

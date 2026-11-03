@@ -54,7 +54,7 @@ class DashboardScreen extends ConsumerWidget {
                         children: [
                           Row(
                             children: [
-                              Flexible(
+                              Expanded(
                                 child: Text(
                                   member != null ? '${member.avatarEmoji} ${member.name}' : l10n.familyHealth,
                                   style: const TextStyle(

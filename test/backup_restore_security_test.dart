@@ -28,7 +28,8 @@ void main() {
               age INTEGER,
               dateOfBirth TEXT,
               colorValue INTEGER NOT NULL,
-              avatarEmoji TEXT NOT NULL
+              avatarEmoji TEXT NOT NULL,
+              familyId TEXT
             )
           ''');
 
@@ -44,6 +45,9 @@ void main() {
               hasArrhythmia INTEGER NOT NULL,
               notes TEXT,
               timestamp TEXT NOT NULL,
+              familyId TEXT,
+              createdBy TEXT,
+              loggedByName TEXT,
               FOREIGN KEY (memberId) REFERENCES family_members (id) ON DELETE CASCADE
             )
           ''');
@@ -56,6 +60,9 @@ void main() {
               mealContext TEXT NOT NULL,
               medicationNotes TEXT,
               timestamp TEXT NOT NULL,
+              familyId TEXT,
+              createdBy TEXT,
+              loggedByName TEXT,
               FOREIGN KEY (memberId) REFERENCES family_members (id) ON DELETE CASCADE
             )
           ''');

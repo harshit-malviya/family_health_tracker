@@ -42,7 +42,7 @@ class MockHealthRepository extends HealthRepository {
   Future<List<GlucoseReading>> getGlucoseReadings(String memberId) async => List.from(glucoseList);
 
   @override
-  Future<void> addBpReading(BpReading reading) async {
+  Future<void> addBpReading(BpReading reading, {String? loggedBy}) async {
     addBpCallCount++;
     if (bpCompleter != null) {
       await bpCompleter!.future;
@@ -51,7 +51,7 @@ class MockHealthRepository extends HealthRepository {
   }
 
   @override
-  Future<void> addGlucoseReading(GlucoseReading reading) async {
+  Future<void> addGlucoseReading(GlucoseReading reading, {String? loggedBy}) async {
     addGlucoseCallCount++;
     if (glucoseCompleter != null) {
       await glucoseCompleter!.future;

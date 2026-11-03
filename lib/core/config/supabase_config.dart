@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 
 /// Configuration for Supabase backend.
 /// Supports compile-time environment variables passed via `--dart-define`:

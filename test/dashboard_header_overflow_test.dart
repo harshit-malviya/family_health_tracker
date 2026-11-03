@@ -64,7 +64,11 @@ void main() {
     await tester.pumpAndSettle();
 
     // 2. Assert no RenderFlex overflow exception was caught
-    expect(tester.takeException(), isNull);
+    final err = tester.takeException();
+    if (err != null) {
+      debugPrint('TEST ERROR: $err');
+    }
+    expect(err, isNull);
 
     // 3. Find the header text widget and assert proper ellipsis and maxLines
     final headerFinder = find.text('👵 Grandmother Elizabeth Alexandra Mary');
