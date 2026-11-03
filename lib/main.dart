@@ -67,41 +67,7 @@ class FamilyHealthTrackerApp extends ConsumerWidget {
         loading: () => const Scaffold(
           body: Center(child: CircularProgressIndicator()),
         ),
-        error: (err, _) => Scaffold(
-          body: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.error_outline_rounded, size: 54, color: Colors.redAccent),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Error connecting to family space: $err',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ElevatedButton.icon(
-                        onPressed: () => ref.read(currentFamilyProvider.notifier).reload(),
-                        icon: const Icon(Icons.refresh_rounded),
-                        label: const Text('Retry'),
-                      ),
-                      const SizedBox(width: 12),
-                      OutlinedButton(
-                        onPressed: () => ref.read(currentFamilyProvider.notifier).signOut(),
-                        child: const Text('Sign Out'),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
+        error: (err, _) => _buildPatientProfilesShell(context, ref),
         data: (family) {
           if (family == null) {
             return const FamilySetupScreen();

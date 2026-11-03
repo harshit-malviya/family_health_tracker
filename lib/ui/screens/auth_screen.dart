@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
@@ -61,7 +62,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
+            content: Text(_formatErrorMessage(e)),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -69,6 +70,18 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  String _formatErrorMessage(Object e) {
+    final str = e.toString().replaceAll('Exception: ', '');
+    if (e is TimeoutException ||
+        str.contains('SocketException') ||
+        str.contains('Failed host lookup') ||
+        str.contains('Network is unreachable') ||
+        str.contains('ClientException')) {
+      return 'Unable to connect. Please check your internet connection.';
+    }
+    return str;
   }
 
   Future<void> _handleRegister() async {
@@ -95,7 +108,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
+            content: Text(_formatErrorMessage(e)),
             backgroundColor: Colors.redAccent,
           ),
         );

@@ -8,6 +8,7 @@ import '../widgets/family_member_header.dart';
 import '../widgets/metric_summary_card.dart';
 import '../widgets/quick_bp_modal.dart';
 import '../widgets/quick_glucose_modal.dart';
+import '../widgets/offline_banner.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -107,6 +108,7 @@ class DashboardScreen extends ConsumerWidget {
                         child: const Icon(Icons.refresh, size: 20, color: AppColors.textDark),
                       ),
                       onPressed: () {
+                        ref.read(syncProvider.notifier).sync();
                         ref.read(bpReadingsProvider.notifier).loadReadings();
                         ref.read(glucoseReadingsProvider.notifier).loadReadings();
                       },
@@ -114,6 +116,10 @@ class DashboardScreen extends ConsumerWidget {
                   ],
                 ),
               ),
+            ),
+
+            const SliverToBoxAdapter(
+              child: OfflineBanner(),
             ),
 
             // Family Member Selector Carousel

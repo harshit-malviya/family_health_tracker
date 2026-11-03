@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:health_tracker/core/config/supabase_config.dart';
 import 'package:health_tracker/core/constants/clinical_standards.dart';
@@ -30,7 +31,7 @@ void main() {
   });
 
   group('Family Sharing & Attribution Model Serialization', () {
-    test('BpReading serializes and deserializes loggedByName and familyId', () {
+    test('BpReading serializes and deserializes loggedByName, familyId, and isPendingSync', () {
       final now = DateTime.now();
       final bp = BpReading(
         id: 'bp_123',
@@ -44,6 +45,7 @@ void main() {
         familyId: 'family_456',
         createdBy: 'user_789',
         loggedByName: 'Rahul',
+        isPendingSync: true,
       );
 
       // Local SQLite / App Map
@@ -51,25 +53,29 @@ void main() {
       expect(localMap['loggedByName'], equals('Rahul'));
       expect(localMap['familyId'], equals('family_456'));
       expect(localMap['createdBy'], equals('user_789'));
+      expect(localMap['isPendingSync'], equals(1));
 
       final fromLocal = BpReading.fromMap(localMap);
       expect(fromLocal.loggedByName, equals('Rahul'));
       expect(fromLocal.familyId, equals('family_456'));
       expect(fromLocal.createdBy, equals('user_789'));
+      expect(fromLocal.isPendingSync, isTrue);
 
-      // Supabase snake_case Map
+      // Supabase snake_case Map (isPendingSync excluded from cloud map)
       final sbMap = bp.toSupabaseMap();
       expect(sbMap['logged_by_name'], equals('Rahul'));
       expect(sbMap['family_id'], equals('family_456'));
       expect(sbMap['created_by'], equals('user_789'));
+      expect(sbMap.containsKey('isPendingSync'), isFalse);
 
       final fromSupabase = BpReading.fromMap(sbMap);
       expect(fromSupabase.loggedByName, equals('Rahul'));
       expect(fromSupabase.familyId, equals('family_456'));
       expect(fromSupabase.createdBy, equals('user_789'));
+      expect(fromSupabase.isPendingSync, isFalse);
     });
 
-    test('GlucoseReading serializes and deserializes loggedByName and familyId', () {
+    test('GlucoseReading serializes and deserializes loggedByName, familyId, and isPendingSync', () {
       final now = DateTime.now();
       final glucose = GlucoseReading(
         id: 'glu_123',
@@ -81,21 +87,25 @@ void main() {
         familyId: 'family_456',
         createdBy: 'user_789',
         loggedByName: 'Dr. Priya',
+        isPendingSync: true,
       );
 
       // Local SQLite / App Map
       final localMap = glucose.toMap();
       expect(localMap['loggedByName'], equals('Dr. Priya'));
       expect(localMap['familyId'], equals('family_456'));
+      expect(localMap['isPendingSync'], equals(1));
 
       final fromLocal = GlucoseReading.fromMap(localMap);
       expect(fromLocal.loggedByName, equals('Dr. Priya'));
       expect(fromLocal.familyId, equals('family_456'));
+      expect(fromLocal.isPendingSync, isTrue);
 
       // Supabase snake_case Map
       final sbMap = glucose.toSupabaseMap();
       expect(sbMap['logged_by_name'], equals('Dr. Priya'));
       expect(sbMap['family_id'], equals('family_456'));
+      expect(sbMap.containsKey('isPendingSync'), isFalse);
 
       final fromSupabase = GlucoseReading.fromMap(sbMap);
       expect(fromSupabase.loggedByName, equals('Dr. Priya'));
@@ -141,6 +151,25 @@ void main() {
       expect(info.role, equals('admin'));
       expect(info.displayName, equals('Harsh'));
     });
+
+    test('FamilyGroupInfo supports JSON round-trip for offline caching', () {
+      const original = FamilyGroupInfo(
+        id: 'fam-uuid-offline',
+        name: 'The Verma Family',
+        inviteCode: 'VRM-9911',
+        role: 'member',
+        displayName: 'Aarav',
+      );
+
+      final jsonStr = jsonEncode(original.toMap());
+      final decodedMap = jsonDecode(jsonStr) as Map<String, dynamic>;
+      final restored = FamilyGroupInfo.fromMap(decodedMap);
+
+      expect(restored.id, equals(original.id));
+      expect(restored.name, equals(original.name));
+      expect(restored.inviteCode, equals(original.inviteCode));
+      expect(restored.role, equals(original.role));
+      expect(restored.displayName, equals(original.displayName));
+    });
   });
 }
-

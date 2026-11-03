@@ -1,8 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/supabase_service.dart';
 import '../core/database/database_helper.dart';
+import 'health_providers.dart';
+
+const String kCachedFamilyPrefKey = 'cached_family_group_info';
 
 final supabaseServiceProvider = Provider<SupabaseService>((ref) {
   return SupabaseService.instance;
@@ -24,7 +28,7 @@ final currentUserProvider = Provider<User?>((ref) {
   return authState?.session?.user ?? service.currentUser;
 });
 
-/// Notifier tracking the currently active family group
+/// Notifier tracking the currently active family group with local cache support
 class CurrentFamilyNotifier extends AsyncNotifier<FamilyGroupInfo?> {
   @override
   Future<FamilyGroupInfo?> build() async {
@@ -35,7 +39,51 @@ class CurrentFamilyNotifier extends AsyncNotifier<FamilyGroupInfo?> {
       return null;
     }
 
-    return service.getCurrentFamily();
+    // 1. Read from SharedPreferences cache immediately to prevent startup loading spinner
+    FamilyGroupInfo? cached;
+    try {
+      final prefs = ref.watch(sharedPreferencesProvider);
+      final raw = prefs.getString(kCachedFamilyPrefKey);
+      if (raw != null && raw.isNotEmpty) {
+        cached = FamilyGroupInfo.fromMap(jsonDecode(raw) as Map<String, dynamic>);
+      }
+    } catch (_) {}
+
+    // 2. If cached, return immediately and trigger quiet background verification
+    if (cached != null) {
+      unawaited(_verifyRemote(service));
+      return cached;
+    }
+
+    // 3. Fallback to remote if no cache exists (first-time signin)
+    try {
+      final remote = await service.getCurrentFamily();
+      if (remote != null) {
+        _saveToCache(remote);
+      }
+      return remote;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _verifyRemote(SupabaseService service) async {
+    try {
+      final remote = await service.getCurrentFamily();
+      if (remote != null) {
+        _saveToCache(remote);
+        state = AsyncValue.data(remote);
+      }
+    } catch (_) {
+      // Offline: keep current cached state quietly without throwing
+    }
+  }
+
+  void _saveToCache(FamilyGroupInfo info) {
+    try {
+      final prefs = ref.read(sharedPreferencesProvider);
+      prefs.setString(kCachedFamilyPrefKey, jsonEncode(info.toMap()));
+    } catch (_) {}
   }
 
   Future<void> reload() async {
@@ -54,6 +102,7 @@ class CurrentFamilyNotifier extends AsyncNotifier<FamilyGroupInfo?> {
         familyName: familyName,
         displayName: displayName,
       );
+      _saveToCache(family);
       state = AsyncValue.data(family);
       return family;
     } catch (e, st) {
@@ -73,6 +122,7 @@ class CurrentFamilyNotifier extends AsyncNotifier<FamilyGroupInfo?> {
         inviteCode: inviteCode,
         displayName: displayName,
       );
+      _saveToCache(family);
       state = AsyncValue.data(family);
       return family;
     } catch (e, st) {
@@ -82,6 +132,11 @@ class CurrentFamilyNotifier extends AsyncNotifier<FamilyGroupInfo?> {
   }
 
   Future<void> signOut() async {
+    try {
+      final prefs = ref.read(sharedPreferencesProvider);
+      await prefs.remove(kCachedFamilyPrefKey);
+    } catch (_) {}
+
     final service = ref.read(supabaseServiceProvider);
     await service.signOut();
     await DatabaseHelper.instance.clearAllData();
@@ -91,4 +146,3 @@ class CurrentFamilyNotifier extends AsyncNotifier<FamilyGroupInfo?> {
 
 final currentFamilyProvider =
     AsyncNotifierProvider<CurrentFamilyNotifier, FamilyGroupInfo?>(CurrentFamilyNotifier.new);
-

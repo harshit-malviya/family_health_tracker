@@ -363,3 +363,28 @@ final glucoseStatsProvider = Provider<GlucoseStats?>((ref) {
     inRangeCount: inRange,
   );
 });
+
+// Outbox Sync Notifier
+class SyncNotifier extends AsyncNotifier<int> {
+  @override
+  Future<int> build() async {
+    final repo = ref.watch(healthRepositoryProvider);
+    return repo.getPendingSyncCount();
+  }
+
+  Future<void> sync() async {
+    state = const AsyncValue.loading();
+    try {
+      final repo = ref.read(healthRepositoryProvider);
+      final remaining = await repo.syncPendingOutbox();
+      state = AsyncValue.data(remaining);
+      ref.invalidate(bpReadingsProvider);
+      ref.invalidate(glucoseReadingsProvider);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+}
+
+final syncProvider = AsyncNotifierProvider<SyncNotifier, int>(SyncNotifier.new);
+

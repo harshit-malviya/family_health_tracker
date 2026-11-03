@@ -6,6 +6,8 @@ import '../models/bp_reading.dart';
 import '../models/glucose_reading.dart';
 import '../core/config/supabase_config.dart';
 
+const Duration kNetworkTimeout = Duration(seconds: 3);
+
 class FamilyGroupInfo {
   final String id;
   final String name;
@@ -20,6 +22,16 @@ class FamilyGroupInfo {
     required this.role,
     required this.displayName,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'inviteCode': inviteCode,
+      'role': role,
+      'displayName': displayName,
+    };
+  }
 
   factory FamilyGroupInfo.fromMap(Map<String, dynamic> map) {
     return FamilyGroupInfo(
@@ -64,7 +76,7 @@ class SupabaseService {
       email: email.trim(),
       password: password,
       data: {'display_name': displayName.trim()},
-    );
+    ).timeout(kNetworkTimeout);
     return response;
   }
 
@@ -78,14 +90,16 @@ class SupabaseService {
     final response = await client.auth.signInWithPassword(
       email: email.trim(),
       password: password,
-    );
+    ).timeout(kNetworkTimeout);
     return response;
   }
 
   Future<void> signOut() async {
     final client = _client;
     if (client != null) {
-      await client.auth.signOut();
+      try {
+        await client.auth.signOut().timeout(kNetworkTimeout);
+      } catch (_) {}
     }
   }
 
@@ -114,7 +128,7 @@ class SupabaseService {
         'p_family_name': familyName.trim(),
         'p_invite_code': code,
         'p_display_name': displayName.trim(),
-      });
+      }).timeout(kNetworkTimeout);
       if (rpcRes is Map<String, dynamic>) {
         return FamilyGroupInfo.fromMap(rpcRes);
       }
@@ -127,17 +141,16 @@ class SupabaseService {
       'name': familyName.trim(),
       'invite_code': code,
       'created_by': user.id,
-    }).select().single();
+    }).select().single().timeout(kNetworkTimeout);
 
     final familyId = familyRow['id'] as String;
 
-    // 2. Insert creator as Admin membership
     await client.from('family_memberships').insert({
       'family_id': familyId,
       'user_id': user.id,
       'display_name': displayName.trim(),
       'role': 'admin',
-    });
+    }).timeout(kNetworkTimeout);
 
     return FamilyGroupInfo(
       id: familyId,
@@ -163,7 +176,7 @@ class SupabaseService {
       final rpcResult = await client.rpc('join_family_by_code', params: {
         'p_invite_code': cleanCode,
         'p_display_name': displayName.trim(),
-      });
+      }).timeout(kNetworkTimeout);
       if (rpcResult is Map<String, dynamic>) {
         return FamilyGroupInfo.fromMap(rpcResult);
       }
@@ -176,7 +189,8 @@ class SupabaseService {
         .from('families')
         .select()
         .eq('invite_code', cleanCode)
-        .limit(1);
+        .limit(1)
+        .timeout(kNetworkTimeout);
 
     if (families.isEmpty) {
       throw Exception('Family with invite code "$cleanCode" was not found.');
@@ -190,7 +204,7 @@ class SupabaseService {
       'user_id': user.id,
       'display_name': displayName.trim(),
       'role': 'member',
-    }, onConflict: 'family_id, user_id');
+    }, onConflict: 'family_id, user_id').timeout(kNetworkTimeout);
 
     return FamilyGroupInfo(
       id: familyId,
@@ -210,7 +224,8 @@ class SupabaseService {
         .from('family_memberships')
         .select('family_id, display_name, role, families(id, name, invite_code)')
         .eq('user_id', user.id)
-        .limit(1);
+        .limit(1)
+        .timeout(kNetworkTimeout);
 
     if (memberships.isEmpty) return null;
 
@@ -237,7 +252,8 @@ class SupabaseService {
         .from('patient_profiles')
         .select()
         .eq('family_id', familyId)
-        .order('created_at', ascending: true);
+        .order('created_at', ascending: true)
+        .timeout(kNetworkTimeout);
 
     return (rows as List).map((r) => FamilyMember.fromMap(r as Map<String, dynamic>)).toList();
   }
@@ -247,14 +263,14 @@ class SupabaseService {
     if (client == null) return;
 
     final data = member.toSupabaseMap()..['family_id'] = familyId;
-    await client.from('patient_profiles').upsert(data);
+    await client.from('patient_profiles').upsert(data).timeout(kNetworkTimeout);
   }
 
   Future<void> deletePatientProfile(String profileId) async {
     final client = _client;
     if (client == null) return;
 
-    await client.from('patient_profiles').delete().eq('id', profileId);
+    await client.from('patient_profiles').delete().eq('id', profileId).timeout(kNetworkTimeout);
   }
 
   // --- BP Readings CRUD ---
@@ -268,7 +284,7 @@ class SupabaseService {
       query = query.eq('member_id', memberId);
     }
 
-    final rows = await query.order('timestamp', ascending: false);
+    final rows = await query.order('timestamp', ascending: false).timeout(kNetworkTimeout);
     return (rows as List).map((r) => BpReading.fromMap(r as Map<String, dynamic>)).toList();
   }
 
@@ -286,14 +302,14 @@ class SupabaseService {
       ..['logged_by_name'] = loggedByName
       ..['created_by'] = user?.id;
 
-    await client.from('bp_readings').upsert(data);
+    await client.from('bp_readings').upsert(data).timeout(kNetworkTimeout);
   }
 
   Future<void> deleteBpReading(String id) async {
     final client = _client;
     if (client == null) return;
 
-    await client.from('bp_readings').delete().eq('id', id);
+    await client.from('bp_readings').delete().eq('id', id).timeout(kNetworkTimeout);
   }
 
   // --- Glucose Readings CRUD ---
@@ -307,7 +323,7 @@ class SupabaseService {
       query = query.eq('member_id', memberId);
     }
 
-    final rows = await query.order('timestamp', ascending: false);
+    final rows = await query.order('timestamp', ascending: false).timeout(kNetworkTimeout);
     return (rows as List).map((r) => GlucoseReading.fromMap(r as Map<String, dynamic>)).toList();
   }
 
@@ -325,14 +341,14 @@ class SupabaseService {
       ..['logged_by_name'] = loggedByName
       ..['created_by'] = user?.id;
 
-    await client.from('glucose_readings').upsert(data);
+    await client.from('glucose_readings').upsert(data).timeout(kNetworkTimeout);
   }
 
   Future<void> deleteGlucoseReading(String id) async {
     final client = _client;
     if (client == null) return;
 
-    await client.from('glucose_readings').delete().eq('id', id);
+    await client.from('glucose_readings').delete().eq('id', id).timeout(kNetworkTimeout);
   }
 
   // --- Realtime Subscriptions ---
@@ -344,46 +360,49 @@ class SupabaseService {
     final client = _client;
     if (client == null) return null;
 
-    final channelName = 'family_realtime_$familyId';
-    final channel = client.channel(channelName);
+    try {
+      final channelName = 'family_realtime_$familyId';
+      final channel = client.channel(channelName);
 
-    channel
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'bp_readings',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'family_id',
-            value: familyId,
-          ),
-          callback: (payload) => onUpdate(),
-        )
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'glucose_readings',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'family_id',
-            value: familyId,
-          ),
-          callback: (payload) => onUpdate(),
-        )
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'patient_profiles',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'family_id',
-            value: familyId,
-          ),
-          callback: (payload) => onUpdate(),
-        )
-        .subscribe();
+      channel
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'bp_readings',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'family_id',
+              value: familyId,
+            ),
+            callback: (payload) => onUpdate(),
+          )
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'glucose_readings',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'family_id',
+              value: familyId,
+            ),
+            callback: (payload) => onUpdate(),
+          )
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'patient_profiles',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'family_id',
+              value: familyId,
+            ),
+            callback: (payload) => onUpdate(),
+          )
+          .subscribe();
 
-    return channel;
+      return channel;
+    } catch (_) {
+      return null;
+    }
   }
 }
-

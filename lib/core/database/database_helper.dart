@@ -29,7 +29,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 5,
+      version: 6,
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON;');
       },
@@ -65,6 +65,10 @@ class DatabaseHelper {
       await db.execute('ALTER TABLE glucose_readings ADD COLUMN createdBy TEXT;');
       await db.execute('ALTER TABLE glucose_readings ADD COLUMN loggedByName TEXT;');
     }
+    if (oldVersion < 6) {
+      await db.execute('ALTER TABLE bp_readings ADD COLUMN isPendingSync INTEGER NOT NULL DEFAULT 0;');
+      await db.execute('ALTER TABLE glucose_readings ADD COLUMN isPendingSync INTEGER NOT NULL DEFAULT 0;');
+    }
   }
 
   Future<void> _createDB(Database db, int version) async {
@@ -98,6 +102,7 @@ class DatabaseHelper {
         familyId TEXT,
         createdBy TEXT,
         loggedByName TEXT,
+        isPendingSync INTEGER NOT NULL DEFAULT 0,
         FOREIGN KEY (memberId) REFERENCES family_members (id) ON DELETE CASCADE
       )
     ''');
@@ -114,6 +119,7 @@ class DatabaseHelper {
         familyId TEXT,
         createdBy TEXT,
         loggedByName TEXT,
+        isPendingSync INTEGER NOT NULL DEFAULT 0,
         FOREIGN KEY (memberId) REFERENCES family_members (id) ON DELETE CASCADE
       )
     ''');
@@ -242,6 +248,57 @@ class DatabaseHelper {
   Future<void> deleteGlucose(String id) async {
     final db = await instance.database;
     await db.delete('glucose_readings', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // --- Outbox Sync Operations ---
+
+  Future<List<BpReading>> getPendingBpReadings() async {
+    final db = await instance.database;
+    final maps = await db.query(
+      'bp_readings',
+      where: 'isPendingSync = 1',
+    );
+    return maps.map((m) => BpReading.fromMap(m)).toList();
+  }
+
+  Future<void> markBpSynced(String id) async {
+    final db = await instance.database;
+    await db.update(
+      'bp_readings',
+      {'isPendingSync': 0},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<List<GlucoseReading>> getPendingGlucoseReadings() async {
+    final db = await instance.database;
+    final maps = await db.query(
+      'glucose_readings',
+      where: 'isPendingSync = 1',
+    );
+    return maps.map((m) => GlucoseReading.fromMap(m)).toList();
+  }
+
+  Future<void> markGlucoseSynced(String id) async {
+    final db = await instance.database;
+    await db.update(
+      'glucose_readings',
+      {'isPendingSync': 0},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<int> getPendingSyncCount() async {
+    final db = await instance.database;
+    final bpCount = Sqflite.firstIntValue(
+      await db.rawQuery('SELECT COUNT(*) FROM bp_readings WHERE isPendingSync = 1'),
+    ) ?? 0;
+    final glucoseCount = Sqflite.firstIntValue(
+      await db.rawQuery('SELECT COUNT(*) FROM glucose_readings WHERE isPendingSync = 1'),
+    ) ?? 0;
+    return bpCount + glucoseCount;
   }
 
   /// Clears local cache tables (e.g. on account logout)
@@ -374,6 +431,7 @@ class DatabaseHelper {
               'familyId': raw['familyId']?.toString(),
               'createdBy': raw['createdBy']?.toString(),
               'loggedByName': raw['loggedByName']?.toString(),
+              'isPendingSync': 0,
             };
 
             await txn.insert(
@@ -417,6 +475,7 @@ class DatabaseHelper {
               'familyId': raw['familyId']?.toString(),
               'createdBy': raw['createdBy']?.toString(),
               'loggedByName': raw['loggedByName']?.toString(),
+              'isPendingSync': 0,
             };
 
             await txn.insert(
