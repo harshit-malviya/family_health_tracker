@@ -5,6 +5,7 @@ import 'package:sqflite/sqflite.dart';
 import '../../models/family_member.dart';
 import '../../models/bp_reading.dart';
 import '../../models/glucose_reading.dart';
+import '../../models/sync_queue_item.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -29,7 +30,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 6,
+      version: 7,
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON;');
       },
@@ -39,35 +40,21 @@ class DatabaseHelper {
   }
 
   Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 2) {
-      await db.execute('ALTER TABLE family_members ADD COLUMN dateOfBirth TEXT;');
-    }
-    if (oldVersion < 3) {
-      // Clean mock seed data from earlier testing versions
-      await db.delete('family_members', where: "id IN ('member_dad', 'member_mom', 'member_self')");
-      await db.delete('bp_readings', where: "memberId IN ('member_dad', 'member_mom', 'member_self')");
-      await db.delete('glucose_readings', where: "memberId IN ('member_dad', 'member_mom', 'member_self')");
-    }
-    if (oldVersion < 4) {
+    if (oldVersion < 7) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS sync_queue (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          entityType TEXT NOT NULL,
+          entityId TEXT NOT NULL,
+          action TEXT NOT NULL,
+          payload TEXT,
+          familyId TEXT NOT NULL,
+          createdAt TEXT NOT NULL
+        );
+      ''');
       await db.execute(
-        'CREATE INDEX IF NOT EXISTS idx_bp_member_time ON bp_readings(memberId, timestamp DESC);',
+        'CREATE INDEX IF NOT EXISTS idx_sync_queue_created ON sync_queue(createdAt ASC);',
       );
-      await db.execute(
-        'CREATE INDEX IF NOT EXISTS idx_glucose_member_time ON glucose_readings(memberId, timestamp DESC);',
-      );
-    }
-    if (oldVersion < 5) {
-      await db.execute('ALTER TABLE family_members ADD COLUMN familyId TEXT;');
-      await db.execute('ALTER TABLE bp_readings ADD COLUMN familyId TEXT;');
-      await db.execute('ALTER TABLE bp_readings ADD COLUMN createdBy TEXT;');
-      await db.execute('ALTER TABLE bp_readings ADD COLUMN loggedByName TEXT;');
-      await db.execute('ALTER TABLE glucose_readings ADD COLUMN familyId TEXT;');
-      await db.execute('ALTER TABLE glucose_readings ADD COLUMN createdBy TEXT;');
-      await db.execute('ALTER TABLE glucose_readings ADD COLUMN loggedByName TEXT;');
-    }
-    if (oldVersion < 6) {
-      await db.execute('ALTER TABLE bp_readings ADD COLUMN isPendingSync INTEGER NOT NULL DEFAULT 0;');
-      await db.execute('ALTER TABLE glucose_readings ADD COLUMN isPendingSync INTEGER NOT NULL DEFAULT 0;');
     }
   }
 
@@ -102,7 +89,6 @@ class DatabaseHelper {
         familyId TEXT,
         createdBy TEXT,
         loggedByName TEXT,
-        isPendingSync INTEGER NOT NULL DEFAULT 0,
         FOREIGN KEY (memberId) REFERENCES family_members (id) ON DELETE CASCADE
       )
     ''');
@@ -119,17 +105,32 @@ class DatabaseHelper {
         familyId TEXT,
         createdBy TEXT,
         loggedByName TEXT,
-        isPendingSync INTEGER NOT NULL DEFAULT 0,
         FOREIGN KEY (memberId) REFERENCES family_members (id) ON DELETE CASCADE
       )
     ''');
 
-    // Composite indexes for fast filtered lookups and sorted history
+    // Sync Queue Table
+    await db.execute('''
+      CREATE TABLE sync_queue (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        entityType TEXT NOT NULL,
+        entityId TEXT NOT NULL,
+        action TEXT NOT NULL,
+        payload TEXT,
+        familyId TEXT NOT NULL,
+        createdAt TEXT NOT NULL
+      )
+    ''');
+
+    // Indexes
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_bp_member_time ON bp_readings(memberId, timestamp DESC);',
     );
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_glucose_member_time ON glucose_readings(memberId, timestamp DESC);',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_sync_queue_created ON sync_queue(createdAt ASC);',
     );
   }
 
@@ -171,9 +172,7 @@ class DatabaseHelper {
 
   Future<void> deleteMember(String id) async {
     final db = await instance.database;
-    await db.transaction((txn) async {
-      await txn.delete('family_members', where: 'id = ?', whereArgs: [id]);
-    });
+    await db.delete('family_members', where: 'id = ?', whereArgs: [id]);
   }
 
   // --- Blood Pressure Operations ---
@@ -187,6 +186,16 @@ class DatabaseHelper {
     );
   }
 
+  Future<void> updateBp(BpReading reading) async {
+    final db = await instance.database;
+    await db.update(
+      'bp_readings',
+      reading.toMap(),
+      where: 'id = ?',
+      whereArgs: [reading.id],
+    );
+  }
+
   Future<List<BpReading>> getBpReadings(String memberId) async {
     final db = await instance.database;
     final maps = await db.query(
@@ -196,16 +205,6 @@ class DatabaseHelper {
       orderBy: 'timestamp DESC',
     );
     return maps.map((m) => BpReading.fromMap(m)).toList();
-  }
-
-  Future<void> updateBp(BpReading reading) async {
-    final db = await instance.database;
-    await db.update(
-      'bp_readings',
-      reading.toMap(),
-      where: 'id = ?',
-      whereArgs: [reading.id],
-    );
   }
 
   Future<void> deleteBp(String id) async {
@@ -250,61 +249,54 @@ class DatabaseHelper {
     await db.delete('glucose_readings', where: 'id = ?', whereArgs: [id]);
   }
 
-  // --- Outbox Sync Operations ---
+  // --- Sync Queue Operations ---
 
-  Future<List<BpReading>> getPendingBpReadings() async {
+  Future<int> enqueueSyncItem({
+    required String entityType,
+    required String entityId,
+    required String action,
+    String? payload,
+    required String familyId,
+  }) async {
+    final db = await instance.database;
+    return await db.insert('sync_queue', {
+      'entityType': entityType,
+      'entityId': entityId,
+      'action': action,
+      'payload': payload,
+      'familyId': familyId,
+      'createdAt': DateTime.now().toIso8601String(),
+    });
+  }
+
+  Future<List<SyncQueueItem>> peekSyncQueue({int limit = 50}) async {
     final db = await instance.database;
     final maps = await db.query(
-      'bp_readings',
-      where: 'isPendingSync = 1',
+      'sync_queue',
+      orderBy: 'id ASC',
+      limit: limit,
     );
-    return maps.map((m) => BpReading.fromMap(m)).toList();
+    return maps.map((m) => SyncQueueItem.fromMap(m)).toList();
   }
 
-  Future<void> markBpSynced(String id) async {
+  Future<void> removeSyncQueueItem(int id) async {
     final db = await instance.database;
-    await db.update(
-      'bp_readings',
-      {'isPendingSync': 0},
-      where: 'id = ?',
-      whereArgs: [id],
+    await db.delete('sync_queue', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> getSyncQueueCount() async {
+    final db = await instance.database;
+    final count = Sqflite.firstIntValue(
+      await db.rawQuery('SELECT COUNT(*) FROM sync_queue'),
     );
+    return count ?? 0;
   }
 
-  Future<List<GlucoseReading>> getPendingGlucoseReadings() async {
-    final db = await instance.database;
-    final maps = await db.query(
-      'glucose_readings',
-      where: 'isPendingSync = 1',
-    );
-    return maps.map((m) => GlucoseReading.fromMap(m)).toList();
-  }
-
-  Future<void> markGlucoseSynced(String id) async {
-    final db = await instance.database;
-    await db.update(
-      'glucose_readings',
-      {'isPendingSync': 0},
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-  }
-
-  Future<int> getPendingSyncCount() async {
-    final db = await instance.database;
-    final bpCount = Sqflite.firstIntValue(
-      await db.rawQuery('SELECT COUNT(*) FROM bp_readings WHERE isPendingSync = 1'),
-    ) ?? 0;
-    final glucoseCount = Sqflite.firstIntValue(
-      await db.rawQuery('SELECT COUNT(*) FROM glucose_readings WHERE isPendingSync = 1'),
-    ) ?? 0;
-    return bpCount + glucoseCount;
-  }
-
-  /// Clears local cache tables (e.g. on account logout)
+  /// Clears local cache tables and sync queue (e.g. on account logout)
   Future<void> clearAllData() async {
     final db = await instance.database;
     await db.transaction((txn) async {
+      await txn.delete('sync_queue');
       await txn.delete('glucose_readings');
       await txn.delete('bp_readings');
       await txn.delete('family_members');
@@ -320,59 +312,72 @@ class DatabaseHelper {
       final bp = await txn.query('bp_readings');
       final glucose = await txn.query('glucose_readings');
 
-      final exportData = {
-        'version': 1,
+      final data = {
+        'version': 7,
         'exportedAt': DateTime.now().toIso8601String(),
         'family_members': members,
         'bp_readings': bp,
         'glucose_readings': glucose,
       };
 
-      return jsonEncode(exportData);
+      return jsonEncode(data);
     });
   }
 
   Future<bool> importFromJson(String jsonString) async {
     try {
       final decoded = jsonDecode(jsonString);
-      if (decoded is! Map<String, dynamic>) {
-        return false;
-      }
+      if (decoded is! Map<String, dynamic>) return false;
+
       final db = await instance.database;
 
       await db.transaction((txn) async {
-        // Collect existing member IDs to enforce foreign key integrity
-        final existingMembers = await txn.query('family_members', columns: ['id']);
-        final knownMemberIds = existingMembers
-            .map((m) => m['id']?.toString())
-            .whereType<String>()
-            .toSet();
+        // Clear existing data before restore
+        await txn.delete('glucose_readings');
+        await txn.delete('bp_readings');
+        await txn.delete('family_members');
 
-        // 1. Sanitize and insert family_members first
+        final knownMemberIds = <String>{};
+
+        // 1. Sanitize and insert family_members
         if (decoded['family_members'] is List) {
           for (final raw in decoded['family_members'] as List) {
             if (raw is! Map) continue;
             final id = raw['id']?.toString();
             final name = raw['name']?.toString();
             final relation = raw['relation']?.toString();
-            final avatarEmoji = raw['avatarEmoji']?.toString() ?? '👤';
             final colorValue = raw['colorValue'] is int
                 ? raw['colorValue'] as int
-                : int.tryParse(raw['colorValue']?.toString() ?? '') ?? 0xFF2196F3;
+                : int.tryParse(raw['colorValue']?.toString() ?? '');
+            final avatarEmoji = raw['avatarEmoji']?.toString();
 
-            if (id == null || id.trim().isEmpty || name == null || name.trim().isEmpty || relation == null) {
-              continue; // Skip invalid records
+            if (id == null ||
+                id.trim().isEmpty ||
+                name == null ||
+                name.trim().isEmpty ||
+                relation == null ||
+                relation.trim().isEmpty ||
+                colorValue == null ||
+                avatarEmoji == null ||
+                avatarEmoji.trim().isEmpty) {
+              continue;
             }
+
+            final age = raw['age'] is int
+                ? raw['age'] as int
+                : int.tryParse(raw['age']?.toString() ?? '');
+            final dateOfBirth = raw['dateOfBirth']?.toString();
+            final familyId = raw['familyId']?.toString();
 
             final sanitized = <String, dynamic>{
               'id': id.trim(),
               'name': name.trim(),
               'relation': relation.trim(),
-              'age': raw['age'] is int ? raw['age'] : int.tryParse(raw['age']?.toString() ?? ''),
-              'dateOfBirth': raw['dateOfBirth']?.toString(),
+              'age': age,
+              'dateOfBirth': dateOfBirth,
               'colorValue': colorValue,
-              'avatarEmoji': avatarEmoji,
-              'familyId': raw['familyId']?.toString(),
+              'avatarEmoji': avatarEmoji.trim(),
+              'familyId': familyId,
             };
 
             await txn.insert(
@@ -431,7 +436,6 @@ class DatabaseHelper {
               'familyId': raw['familyId']?.toString(),
               'createdBy': raw['createdBy']?.toString(),
               'loggedByName': raw['loggedByName']?.toString(),
-              'isPendingSync': 0,
             };
 
             await txn.insert(
@@ -463,7 +467,7 @@ class DatabaseHelper {
               continue; // Skip invalid or orphaned readings
             }
 
-            final mealContext = raw['mealContext']?.toString() ?? 'Random';
+            final mealContext = raw['mealContext']?.toString() ?? 'fasting';
 
             final sanitized = <String, dynamic>{
               'id': id.trim(),
@@ -475,7 +479,6 @@ class DatabaseHelper {
               'familyId': raw['familyId']?.toString(),
               'createdBy': raw['createdBy']?.toString(),
               'loggedByName': raw['loggedByName']?.toString(),
-              'isPendingSync': 0,
             };
 
             await txn.insert(

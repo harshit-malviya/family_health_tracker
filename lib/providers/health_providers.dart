@@ -34,6 +34,7 @@ final realtimeSubscriptionProvider = Provider.autoDispose<void>((ref) {
       ref.invalidate(familyMembersProvider);
       ref.invalidate(bpReadingsProvider);
       ref.invalidate(glucoseReadingsProvider);
+      ref.invalidate(syncProvider);
     },
   );
 
@@ -81,8 +82,6 @@ final glucoseUnitProvider =
 class FamilyMembersNotifier extends AsyncNotifier<List<FamilyMember>> {
   @override
   Future<List<FamilyMember>> build() async {
-    // Ensure realtime listener is alive
-    ref.watch(realtimeSubscriptionProvider);
     final repo = ref.watch(healthRepositoryProvider);
     return repo.getFamilyMembers();
   }
@@ -91,18 +90,21 @@ class FamilyMembersNotifier extends AsyncNotifier<List<FamilyMember>> {
     final repo = ref.read(healthRepositoryProvider);
     await repo.saveMember(member);
     ref.invalidateSelf();
+    ref.invalidate(syncProvider);
   }
 
   Future<void> updateMember(FamilyMember member) async {
     final repo = ref.read(healthRepositoryProvider);
     await repo.updateMember(member);
     ref.invalidateSelf();
+    ref.invalidate(syncProvider);
   }
 
   Future<void> deleteMember(String id) async {
     final repo = ref.read(healthRepositoryProvider);
     await repo.deleteMember(id);
     ref.invalidateSelf();
+    ref.invalidate(syncProvider);
   }
 
   Future<void> loadMembers() async {
@@ -194,7 +196,6 @@ final activeMemberProvider = Provider<FamilyMember?>((ref) {
 class BpReadingsNotifier extends AsyncNotifier<List<BpReading>> {
   @override
   Future<List<BpReading>> build() async {
-    ref.watch(realtimeSubscriptionProvider);
     final member = ref.watch(activeMemberProvider);
     if (member == null) return [];
     final repo = ref.watch(healthRepositoryProvider);
@@ -205,18 +206,21 @@ class BpReadingsNotifier extends AsyncNotifier<List<BpReading>> {
     final repo = ref.read(healthRepositoryProvider);
     await repo.addBpReading(reading, loggedBy: loggedBy);
     ref.invalidateSelf();
+    ref.invalidate(syncProvider);
   }
 
   Future<void> updateReading(BpReading reading) async {
     final repo = ref.read(healthRepositoryProvider);
     await repo.updateBpReading(reading);
     ref.invalidateSelf();
+    ref.invalidate(syncProvider);
   }
 
   Future<void> deleteReading(String id) async {
     final repo = ref.read(healthRepositoryProvider);
     await repo.deleteBpReading(id);
     ref.invalidateSelf();
+    ref.invalidate(syncProvider);
   }
 
   Future<void> loadReadings() async {
@@ -232,7 +236,6 @@ final bpReadingsProvider =
 class GlucoseReadingsNotifier extends AsyncNotifier<List<GlucoseReading>> {
   @override
   Future<List<GlucoseReading>> build() async {
-    ref.watch(realtimeSubscriptionProvider);
     final member = ref.watch(activeMemberProvider);
     if (member == null) return [];
     final repo = ref.watch(healthRepositoryProvider);
@@ -243,18 +246,21 @@ class GlucoseReadingsNotifier extends AsyncNotifier<List<GlucoseReading>> {
     final repo = ref.read(healthRepositoryProvider);
     await repo.addGlucoseReading(reading, loggedBy: loggedBy);
     ref.invalidateSelf();
+    ref.invalidate(syncProvider);
   }
 
   Future<void> updateReading(GlucoseReading reading) async {
     final repo = ref.read(healthRepositoryProvider);
     await repo.updateGlucoseReading(reading);
     ref.invalidateSelf();
+    ref.invalidate(syncProvider);
   }
 
   Future<void> deleteReading(String id) async {
     final repo = ref.read(healthRepositoryProvider);
     await repo.deleteGlucoseReading(id);
     ref.invalidateSelf();
+    ref.invalidate(syncProvider);
   }
 
   Future<void> loadReadings() async {
@@ -380,6 +386,7 @@ class SyncNotifier extends AsyncNotifier<int> {
       state = AsyncValue.data(remaining);
       ref.invalidate(bpReadingsProvider);
       ref.invalidate(glucoseReadingsProvider);
+      ref.invalidate(syncProvider);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }

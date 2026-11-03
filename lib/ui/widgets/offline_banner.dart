@@ -27,7 +27,7 @@ class OfflineBanner extends ConsumerWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Saved locally ($pendingCount ${pendingCount == 1 ? 'reading' : 'readings'} pending sync)',
+                  'Saved locally ($pendingCount ${pendingCount == 1 ? 'change' : 'changes'} pending sync)',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,

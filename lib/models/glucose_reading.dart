@@ -10,7 +10,6 @@ class GlucoseReading {
   final String? familyId;
   final String? createdBy;
   final String? loggedByName;
-  final bool isPendingSync;
 
   const GlucoseReading({
     required this.id,
@@ -22,7 +21,6 @@ class GlucoseReading {
     this.familyId,
     this.createdBy,
     this.loggedByName,
-    this.isPendingSync = false,
   });
 
   GlucoseCategory get category => ClinicalStandards.evaluateGlucose(valueMgDl, mealContext);
@@ -40,7 +38,6 @@ class GlucoseReading {
     String? familyId,
     String? createdBy,
     String? loggedByName,
-    bool? isPendingSync,
   }) {
     return GlucoseReading(
       id: id ?? this.id,
@@ -52,7 +49,6 @@ class GlucoseReading {
       familyId: familyId ?? this.familyId,
       createdBy: createdBy ?? this.createdBy,
       loggedByName: loggedByName ?? this.loggedByName,
-      isPendingSync: isPendingSync ?? this.isPendingSync,
     );
   }
 
@@ -67,7 +63,6 @@ class GlucoseReading {
       'familyId': familyId,
       'createdBy': createdBy,
       'loggedByName': loggedByName,
-      'isPendingSync': isPendingSync ? 1 : 0,
     };
   }
 
@@ -85,7 +80,6 @@ class GlucoseReading {
       familyId: (map['familyId'] ?? map['family_id']) as String?,
       createdBy: (map['createdBy'] ?? map['created_by']) as String?,
       loggedByName: (map['loggedByName'] ?? map['logged_by_name']) as String?,
-      isPendingSync: (map['isPendingSync'] == 1 || map['isPendingSync'] == true),
     );
   }
 

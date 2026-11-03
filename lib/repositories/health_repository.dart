@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 import '../core/database/database_helper.dart';
 import '../models/family_member.dart';
 import '../models/bp_reading.dart';
 import '../models/glucose_reading.dart';
+import '../models/sync_queue_item.dart';
 import '../services/supabase_service.dart';
 
 class HealthRepository {
@@ -10,6 +12,7 @@ class HealthRepository {
   final SupabaseService _supabaseService;
   String? activeFamilyId;
   String? activeUserDisplayName;
+  bool _isSyncing = false;
 
   HealthRepository({
     DatabaseHelper? dbHelper,
@@ -22,6 +25,34 @@ class HealthRepository {
   void setActiveContext({String? familyId, String? userDisplayName}) {
     activeFamilyId = familyId;
     activeUserDisplayName = userDisplayName;
+  }
+
+  // --- Centralized Mutation Pipeline ---
+
+  Future<void> _recordMutation({
+    required Future<void> Function() localAction,
+    required String entityType,
+    required String entityId,
+    required String action,
+    String? payload,
+  }) async {
+    // 1. Mutate local SQLite database immediately
+    await localAction();
+
+    // 2. Enqueue into sync_queue if in a family group
+    final familyId = activeFamilyId;
+    if (familyId != null && familyId.isNotEmpty) {
+      await _dbHelper.enqueueSyncItem(
+        entityType: entityType,
+        entityId: entityId,
+        action: action,
+        payload: payload,
+        familyId: familyId,
+      );
+
+      // 3. Eagerly drain queue if connectivity is available
+      unawaited(processSyncQueue());
+    }
   }
 
   // --- Family Members / Patient Profiles ---
@@ -64,38 +95,37 @@ class HealthRepository {
 
   Future<void> saveMember(FamilyMember member) async {
     final familyId = activeFamilyId;
-    final enrichedMember = member.copyWith(familyId: familyId);
+    final enriched = member.copyWith(familyId: familyId);
 
-    await _dbHelper.insertMember(enrichedMember);
-
-    if (_supabaseService.isAvailable && familyId != null && familyId.isNotEmpty) {
-      try {
-        await _supabaseService.savePatientProfile(enrichedMember, familyId);
-      } catch (_) {}
-    }
+    await _recordMutation(
+      localAction: () => _dbHelper.insertMember(enriched),
+      entityType: 'family_member',
+      entityId: enriched.id,
+      action: 'INSERT',
+      payload: jsonEncode(enriched.toMap()),
+    );
   }
 
   Future<void> updateMember(FamilyMember member) async {
     final familyId = activeFamilyId;
-    final enrichedMember = member.copyWith(familyId: familyId);
+    final enriched = member.copyWith(familyId: familyId);
 
-    await _dbHelper.updateMember(enrichedMember);
-
-    if (_supabaseService.isAvailable && familyId != null && familyId.isNotEmpty) {
-      try {
-        await _supabaseService.savePatientProfile(enrichedMember, familyId);
-      } catch (_) {}
-    }
+    await _recordMutation(
+      localAction: () => _dbHelper.updateMember(enriched),
+      entityType: 'family_member',
+      entityId: enriched.id,
+      action: 'UPDATE',
+      payload: jsonEncode(enriched.toMap()),
+    );
   }
 
   Future<void> deleteMember(String id) async {
-    await _dbHelper.deleteMember(id);
-
-    if (_supabaseService.isAvailable && activeFamilyId != null) {
-      try {
-        await _supabaseService.deletePatientProfile(id);
-      } catch (_) {}
-    }
+    await _recordMutation(
+      localAction: () => _dbHelper.deleteMember(id),
+      entityType: 'family_member',
+      entityId: id,
+      action: 'DELETE',
+    );
   }
 
   // --- Blood Pressure Readings ---
@@ -104,7 +134,6 @@ class HealthRepository {
     final familyId = activeFamilyId;
     final localReadings = await _dbHelper.getBpReadings(memberId);
 
-    // If local cache has data, return immediately for instant render
     if (localReadings.isNotEmpty) {
       if (_supabaseService.isAvailable && familyId != null && familyId.isNotEmpty) {
         unawaited(_refreshBpFromRemote(familyId, memberId));
@@ -112,7 +141,6 @@ class HealthRepository {
       return localReadings;
     }
 
-    // Otherwise, fetch remote with quick timeout
     if (_supabaseService.isAvailable && familyId != null && familyId.isNotEmpty) {
       try {
         final remoteReadings = await _supabaseService.getBpReadings(familyId, memberId: memberId);
@@ -131,7 +159,6 @@ class HealthRepository {
     try {
       final remoteReadings = await _supabaseService.getBpReadings(familyId, memberId: memberId);
       for (final r in remoteReadings) {
-        // Don't overwrite local rows that have unsynced changes
         await _dbHelper.insertBp(r);
       }
     } catch (_) {}
@@ -143,57 +170,37 @@ class HealthRepository {
     final enriched = reading.copyWith(
       familyId: familyId,
       loggedByName: reading.loggedByName ?? displayName,
-      isPendingSync: true, // Mark pending until remote confirms
     );
 
-    // 1. Save locally in SQLite immediately
-    await _dbHelper.insertBp(enriched);
-
-    // 2. Push to Supabase if connected
-    if (_supabaseService.isAvailable && familyId != null && familyId.isNotEmpty) {
-      try {
-        await _supabaseService.saveBpReading(
-          enriched,
-          familyId,
-          loggedByName: enriched.loggedByName ?? displayName,
-        );
-        // Confirmed synced
-        await _dbHelper.markBpSynced(enriched.id);
-      } catch (_) {
-        // Stays pending in outbox
-      }
-    }
+    await _recordMutation(
+      localAction: () => _dbHelper.insertBp(enriched),
+      entityType: 'bp_reading',
+      entityId: enriched.id,
+      action: 'INSERT',
+      payload: jsonEncode(enriched.toMap()),
+    );
   }
 
   Future<void> updateBpReading(BpReading reading) async {
     final familyId = activeFamilyId;
-    final enriched = reading.copyWith(
-      familyId: familyId,
-      isPendingSync: true,
+    final enriched = reading.copyWith(familyId: familyId);
+
+    await _recordMutation(
+      localAction: () => _dbHelper.updateBp(enriched),
+      entityType: 'bp_reading',
+      entityId: enriched.id,
+      action: 'UPDATE',
+      payload: jsonEncode(enriched.toMap()),
     );
-
-    await _dbHelper.updateBp(enriched);
-
-    if (_supabaseService.isAvailable && familyId != null && familyId.isNotEmpty) {
-      try {
-        await _supabaseService.saveBpReading(
-          enriched,
-          familyId,
-          loggedByName: enriched.loggedByName ?? activeUserDisplayName ?? 'Family Member',
-        );
-        await _dbHelper.markBpSynced(enriched.id);
-      } catch (_) {}
-    }
   }
 
   Future<void> deleteBpReading(String id) async {
-    await _dbHelper.deleteBp(id);
-
-    if (_supabaseService.isAvailable && activeFamilyId != null) {
-      try {
-        await _supabaseService.deleteBpReading(id);
-      } catch (_) {}
-    }
+    await _recordMutation(
+      localAction: () => _dbHelper.deleteBp(id),
+      entityType: 'bp_reading',
+      entityId: id,
+      action: 'DELETE',
+    );
   }
 
   // --- Blood Glucose Readings ---
@@ -238,100 +245,115 @@ class HealthRepository {
     final enriched = reading.copyWith(
       familyId: familyId,
       loggedByName: reading.loggedByName ?? displayName,
-      isPendingSync: true,
     );
 
-    // 1. Save locally in SQLite immediately
-    await _dbHelper.insertGlucose(enriched);
-
-    // 2. Push to Supabase if connected
-    if (_supabaseService.isAvailable && familyId != null && familyId.isNotEmpty) {
-      try {
-        await _supabaseService.saveGlucoseReading(
-          enriched,
-          familyId,
-          loggedByName: enriched.loggedByName ?? displayName,
-        );
-        await _dbHelper.markGlucoseSynced(enriched.id);
-      } catch (_) {
-        // Stays pending in outbox
-      }
-    }
+    await _recordMutation(
+      localAction: () => _dbHelper.insertGlucose(enriched),
+      entityType: 'glucose_reading',
+      entityId: enriched.id,
+      action: 'INSERT',
+      payload: jsonEncode(enriched.toMap()),
+    );
   }
 
   Future<void> updateGlucoseReading(GlucoseReading reading) async {
     final familyId = activeFamilyId;
-    final enriched = reading.copyWith(
-      familyId: familyId,
-      isPendingSync: true,
+    final enriched = reading.copyWith(familyId: familyId);
+
+    await _recordMutation(
+      localAction: () => _dbHelper.updateGlucose(enriched),
+      entityType: 'glucose_reading',
+      entityId: enriched.id,
+      action: 'UPDATE',
+      payload: jsonEncode(enriched.toMap()),
     );
-
-    await _dbHelper.updateGlucose(enriched);
-
-    if (_supabaseService.isAvailable && familyId != null && familyId.isNotEmpty) {
-      try {
-        await _supabaseService.saveGlucoseReading(
-          enriched,
-          familyId,
-          loggedByName: enriched.loggedByName ?? activeUserDisplayName ?? 'Family Member',
-        );
-        await _dbHelper.markGlucoseSynced(enriched.id);
-      } catch (_) {}
-    }
   }
 
   Future<void> deleteGlucoseReading(String id) async {
-    await _dbHelper.deleteGlucose(id);
-
-    if (_supabaseService.isAvailable && activeFamilyId != null) {
-      try {
-        await _supabaseService.deleteGlucoseReading(id);
-      } catch (_) {}
-    }
+    await _recordMutation(
+      localAction: () => _dbHelper.deleteGlucose(id),
+      entityType: 'glucose_reading',
+      entityId: id,
+      action: 'DELETE',
+    );
   }
 
-  // --- Background Outbox Sync ---
+  // --- Unified Sync Queue Processor ---
 
-  Future<int> syncPendingOutbox() async {
-    if (!_supabaseService.isAvailable || activeFamilyId == null) {
-      return await _dbHelper.getPendingSyncCount();
+  Future<int> processSyncQueue() async {
+    if (_isSyncing || !_supabaseService.isAvailable || activeFamilyId == null) {
+      return await _dbHelper.getSyncQueueCount();
     }
-    final familyId = activeFamilyId!;
 
-    // 1. Sync pending BP readings
-    final pendingBp = await _dbHelper.getPendingBpReadings();
-    for (final bp in pendingBp) {
-      try {
-        await _supabaseService.saveBpReading(
-          bp,
-          familyId,
-          loggedByName: bp.loggedByName ?? activeUserDisplayName ?? 'Family Member',
-        );
-        await _dbHelper.markBpSynced(bp.id);
-      } catch (_) {
-        break; // Stop if offline
+    _isSyncing = true;
+    try {
+      while (true) {
+        final items = await _dbHelper.peekSyncQueue(limit: 20);
+        if (items.isEmpty) break;
+
+        bool hasError = false;
+        for (final item in items) {
+          try {
+            await _dispatchSyncItem(item);
+            await _dbHelper.removeSyncQueueItem(item.id!);
+          } catch (_) {
+            hasError = true;
+            break; // Stop draining on network failure/timeout
+          }
+        }
+
+        if (hasError) break;
       }
+    } finally {
+      _isSyncing = false;
     }
 
-    // 2. Sync pending Glucose readings
-    final pendingGlucose = await _dbHelper.getPendingGlucoseReadings();
-    for (final g in pendingGlucose) {
-      try {
-        await _supabaseService.saveGlucoseReading(
-          g,
-          familyId,
-          loggedByName: g.loggedByName ?? activeUserDisplayName ?? 'Family Member',
-        );
-        await _dbHelper.markGlucoseSynced(g.id);
-      } catch (_) {
+    return await _dbHelper.getSyncQueueCount();
+  }
+
+  Future<void> _dispatchSyncItem(SyncQueueItem item) async {
+    final familyId = item.familyId;
+    switch (item.entityType) {
+      case 'family_member':
+        if (item.action == 'DELETE') {
+          await _supabaseService.deletePatientProfile(item.entityId);
+        } else if (item.payload != null) {
+          final member = FamilyMember.fromMap(jsonDecode(item.payload!));
+          await _supabaseService.savePatientProfile(member, familyId);
+        }
         break;
-      }
-    }
 
-    return await _dbHelper.getPendingSyncCount();
+      case 'bp_reading':
+        if (item.action == 'DELETE') {
+          await _supabaseService.deleteBpReading(item.entityId);
+        } else if (item.payload != null) {
+          final reading = BpReading.fromMap(jsonDecode(item.payload!));
+          await _supabaseService.saveBpReading(
+            reading,
+            familyId,
+            loggedByName: reading.loggedByName ?? activeUserDisplayName ?? 'Family Member',
+          );
+        }
+        break;
+
+      case 'glucose_reading':
+        if (item.action == 'DELETE') {
+          await _supabaseService.deleteGlucoseReading(item.entityId);
+        } else if (item.payload != null) {
+          final reading = GlucoseReading.fromMap(jsonDecode(item.payload!));
+          await _supabaseService.saveGlucoseReading(
+            reading,
+            familyId,
+            loggedByName: reading.loggedByName ?? activeUserDisplayName ?? 'Family Member',
+          );
+        }
+        break;
+    }
   }
 
-  Future<int> getPendingSyncCount() => _dbHelper.getPendingSyncCount();
+  Future<int> syncPendingOutbox() => processSyncQueue();
+
+  Future<int> getPendingSyncCount() => _dbHelper.getSyncQueueCount();
 
   // --- Backup & Restore ---
   Future<String> exportBackupJson() => _dbHelper.exportToJson();

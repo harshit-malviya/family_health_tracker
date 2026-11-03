@@ -5,6 +5,7 @@ import 'package:health_tracker/core/constants/clinical_standards.dart';
 import 'package:health_tracker/models/family_member.dart';
 import 'package:health_tracker/models/bp_reading.dart';
 import 'package:health_tracker/models/glucose_reading.dart';
+import 'package:health_tracker/models/sync_queue_item.dart';
 import 'package:health_tracker/services/supabase_service.dart';
 
 void main() {
@@ -31,7 +32,7 @@ void main() {
   });
 
   group('Family Sharing & Attribution Model Serialization', () {
-    test('BpReading serializes and deserializes loggedByName, familyId, and isPendingSync', () {
+    test('BpReading serializes and deserializes loggedByName and familyId cleanly', () {
       final now = DateTime.now();
       final bp = BpReading(
         id: 'bp_123',
@@ -45,7 +46,6 @@ void main() {
         familyId: 'family_456',
         createdBy: 'user_789',
         loggedByName: 'Rahul',
-        isPendingSync: true,
       );
 
       // Local SQLite / App Map
@@ -53,29 +53,26 @@ void main() {
       expect(localMap['loggedByName'], equals('Rahul'));
       expect(localMap['familyId'], equals('family_456'));
       expect(localMap['createdBy'], equals('user_789'));
-      expect(localMap['isPendingSync'], equals(1));
+      expect(localMap.containsKey('isPendingSync'), isFalse);
 
       final fromLocal = BpReading.fromMap(localMap);
       expect(fromLocal.loggedByName, equals('Rahul'));
       expect(fromLocal.familyId, equals('family_456'));
       expect(fromLocal.createdBy, equals('user_789'));
-      expect(fromLocal.isPendingSync, isTrue);
 
-      // Supabase snake_case Map (isPendingSync excluded from cloud map)
+      // Supabase snake_case Map
       final sbMap = bp.toSupabaseMap();
       expect(sbMap['logged_by_name'], equals('Rahul'));
       expect(sbMap['family_id'], equals('family_456'));
       expect(sbMap['created_by'], equals('user_789'));
-      expect(sbMap.containsKey('isPendingSync'), isFalse);
 
       final fromSupabase = BpReading.fromMap(sbMap);
       expect(fromSupabase.loggedByName, equals('Rahul'));
       expect(fromSupabase.familyId, equals('family_456'));
       expect(fromSupabase.createdBy, equals('user_789'));
-      expect(fromSupabase.isPendingSync, isFalse);
     });
 
-    test('GlucoseReading serializes and deserializes loggedByName, familyId, and isPendingSync', () {
+    test('GlucoseReading serializes and deserializes loggedByName and familyId cleanly', () {
       final now = DateTime.now();
       final glucose = GlucoseReading(
         id: 'glu_123',
@@ -87,25 +84,22 @@ void main() {
         familyId: 'family_456',
         createdBy: 'user_789',
         loggedByName: 'Dr. Priya',
-        isPendingSync: true,
       );
 
       // Local SQLite / App Map
       final localMap = glucose.toMap();
       expect(localMap['loggedByName'], equals('Dr. Priya'));
       expect(localMap['familyId'], equals('family_456'));
-      expect(localMap['isPendingSync'], equals(1));
+      expect(localMap.containsKey('isPendingSync'), isFalse);
 
       final fromLocal = GlucoseReading.fromMap(localMap);
       expect(fromLocal.loggedByName, equals('Dr. Priya'));
       expect(fromLocal.familyId, equals('family_456'));
-      expect(fromLocal.isPendingSync, isTrue);
 
       // Supabase snake_case Map
       final sbMap = glucose.toSupabaseMap();
       expect(sbMap['logged_by_name'], equals('Dr. Priya'));
       expect(sbMap['family_id'], equals('family_456'));
-      expect(sbMap.containsKey('isPendingSync'), isFalse);
 
       final fromSupabase = GlucoseReading.fromMap(sbMap);
       expect(fromSupabase.loggedByName, equals('Dr. Priya'));
@@ -133,6 +127,32 @@ void main() {
       expect(sbMap['family_id'], equals('family_456'));
       final fromSb = FamilyMember.fromMap(sbMap);
       expect(fromSb.familyId, equals('family_456'));
+    });
+
+    test('SyncQueueItem serializes and deserializes correctly', () {
+      final now = DateTime.now();
+      final item = SyncQueueItem(
+        id: 1,
+        entityType: 'bp_reading',
+        entityId: 'bp_xyz',
+        action: 'INSERT',
+        payload: '{"systolic": 120, "diastolic": 80}',
+        familyId: 'family_456',
+        createdAt: now,
+      );
+
+      final map = item.toMap();
+      expect(map['entityType'], equals('bp_reading'));
+      expect(map['entityId'], equals('bp_xyz'));
+      expect(map['action'], equals('INSERT'));
+      expect(map['payload'], equals('{"systolic": 120, "diastolic": 80}'));
+      expect(map['familyId'], equals('family_456'));
+
+      final fromMap = SyncQueueItem.fromMap(map);
+      expect(fromMap.entityType, equals('bp_reading'));
+      expect(fromMap.action, equals('INSERT'));
+      expect(fromMap.entityId, equals('bp_xyz'));
+      expect(fromMap.payload, equals(item.payload));
     });
 
     test('FamilyGroupInfo correctly parses from Supabase RPC / table maps', () {

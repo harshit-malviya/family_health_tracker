@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
 import '../../l10n/app_localizations.dart';
+import '../../providers/health_providers.dart';
 import 'dashboard_screen.dart';
 import 'analytics_screen.dart';
 import 'history_screen.dart';
 import 'doctor_report_screen.dart';
 import 'settings_screen.dart';
 
-class HomeShell extends StatefulWidget {
+class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key});
 
   @override
-  State<HomeShell> createState() => _HomeShellState();
+  ConsumerState<HomeShell> createState() => _HomeShellState();
 }
 
-class _HomeShellState extends State<HomeShell> {
+class _HomeShellState extends ConsumerState<HomeShell> {
   int _currentIndex = 0;
 
   final List<Widget> _screens = const [
@@ -27,6 +29,9 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
+    // Keep family realtime channel active while app shell is running
+    ref.watch(realtimeSubscriptionProvider);
+
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
